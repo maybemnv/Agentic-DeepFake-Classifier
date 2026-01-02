@@ -1,0 +1,9 @@
+opencv-python
+tensorflow
+keras
+numpy
+python-dotenv
+yolov9
+fastapi
+uvicorn
+pillow
