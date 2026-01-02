@@ -1,29 +1,17 @@
 """
-Video Processor Module
-Handles video ingestion, validation, and frame extraction.
-
-Author: Agentic Deepfake Classifier
+Video Processing Module
+Handles video loading, validation, and frame extraction.
 """
 
 import cv2
 import os
-from typing import List, Tuple, Optional, Generator
-from dataclasses import dataclass
+from typing import Generator, Optional, Tuple, List
 import logging
 
+from ..core import VideoMetadata, VideoConfig, VIDEO_CONFIG
+from ..core.exceptions import VideoNotFoundError, VideoFormatError, VideoCorruptedError
+
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class VideoMetadata:
-    """Metadata about the processed video."""
-    path: str
-    fps: float
-    total_frames: int
-    duration_seconds: float
-    width: int
-    height: int
-    format: str
 
 
 class VideoProcessor:
@@ -36,47 +24,45 @@ class VideoProcessor:
     - Extract frames at configurable intervals
     """
     
-    SUPPORTED_FORMATS = {'.mp4', '.avi', '.mov', '.mkv', '.webm'}
-    
-    def __init__(self, sample_rate: float = 1.0):
+    def __init__(self, config: VideoConfig = None):
         """
         Initialize the video processor.
         
         Args:
-            sample_rate: Frames to extract per second (default: 1 fps)
+            config: Video processing configuration
         """
-        self.sample_rate = sample_rate
+        self.config = config or VIDEO_CONFIG
     
-    def validate_video(self, video_path: str) -> Tuple[bool, str]:
+    def validate(self, video_path: str) -> None:
         """
         Validate that video file exists and is in supported format.
         
         Args:
             video_path: Path to the video file
             
-        Returns:
-            Tuple of (is_valid, error_message)
+        Raises:
+            VideoNotFoundError: If file doesn't exist
+            VideoFormatError: If format not supported
+            VideoCorruptedError: If file is corrupted
         """
         if not os.path.exists(video_path):
-            return False, f"Video file not found: {video_path}"
+            raise VideoNotFoundError(f"Video file not found: {video_path}")
         
         ext = os.path.splitext(video_path)[1].lower()
-        if ext not in self.SUPPORTED_FORMATS:
-            return False, f"Unsupported format: {ext}. Supported: {self.SUPPORTED_FORMATS}"
+        if ext not in self.config.supported_formats:
+            raise VideoFormatError(
+                f"Unsupported format: {ext}. Supported: {self.config.supported_formats}"
+            )
         
-        # Try to open the video
         cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
-            return False, "Failed to open video file"
+            raise VideoCorruptedError("Failed to open video file")
         
-        # Check if video has frames
         ret, _ = cap.read()
         cap.release()
         
         if not ret:
-            return False, "Video file appears to be empty or corrupted"
-        
-        return True, "Valid"
+            raise VideoCorruptedError("Video file appears to be empty or corrupted")
     
     def get_metadata(self, video_path: str) -> VideoMetadata:
         """
@@ -86,7 +72,7 @@ class VideoProcessor:
             video_path: Path to the video file
             
         Returns:
-            VideoMetadata object with video information
+            VideoMetadata object
         """
         cap = cv2.VideoCapture(video_path)
         
@@ -118,7 +104,7 @@ class VideoProcessor:
         
         Args:
             video_path: Path to the video file
-            max_frames: Maximum number of frames to extract (optional)
+            max_frames: Maximum number of frames to extract
             
         Yields:
             Tuple of (frame_index, frame_image)
@@ -126,14 +112,15 @@ class VideoProcessor:
         cap = cv2.VideoCapture(video_path)
         fps = cap.get(cv2.CAP_PROP_FPS)
         
-        # Calculate frame interval based on sample rate
-        frame_interval = int(fps / self.sample_rate) if fps > 0 else 1
-        frame_interval = max(1, frame_interval)  # At least 1
+        frame_interval = int(fps / self.config.sample_rate) if fps > 0 else 1
+        frame_interval = max(1, frame_interval)
+        
+        max_to_extract = max_frames or self.config.max_frames
         
         frame_count = 0
         extracted_count = 0
         
-        logger.info(f"Extracting frames at {self.sample_rate} fps (interval: {frame_interval})")
+        logger.info(f"Extracting frames at {self.config.sample_rate} fps")
         
         while cap.isOpened():
             ret, frame = cap.read()
@@ -144,27 +131,18 @@ class VideoProcessor:
                 yield frame_count, frame
                 extracted_count += 1
                 
-                if max_frames and extracted_count >= max_frames:
+                if max_to_extract and extracted_count >= max_to_extract:
                     break
             
             frame_count += 1
         
         cap.release()
-        logger.info(f"Extracted {extracted_count} frames from {frame_count} total")
+        logger.info(f"Extracted {extracted_count} frames")
     
     def extract_frames_list(
         self, 
         video_path: str, 
         max_frames: Optional[int] = None
     ) -> List[Tuple[int, 'cv2.Mat']]:
-        """
-        Extract frames as a list (non-generator version).
-        
-        Args:
-            video_path: Path to the video file
-            max_frames: Maximum number of frames to extract (optional)
-            
-        Returns:
-            List of (frame_index, frame_image) tuples
-        """
+        """Extract frames as a list."""
         return list(self.extract_frames(video_path, max_frames))

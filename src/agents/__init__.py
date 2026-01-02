@@ -1,5 +1,10 @@
-# Agentic Modules
-from .decision_agent import DecisionAgent, Verdict
-from .cognitive_agent import CognitiveAgent
+"""
+Agents Module
+Decision-making and cognitive response agents.
+"""
 
-__all__ = ['DecisionAgent', 'Verdict', 'CognitiveAgent']
+from .decision import DecisionAgent
+from .cognitive import CognitiveAgent
+from ..core import Verdict, DecisionResult, CognitiveResponse
+
+__all__ = ['DecisionAgent', 'CognitiveAgent', 'Verdict', 'DecisionResult', 'CognitiveResponse']
