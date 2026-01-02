@@ -1,305 +1,203 @@
-```
+# Agentic Deepfake Detection - Implementation Tasks
 
-```
+## Tech Stack Decision ✅
 
-# 4-Hour POC Implementation Tasks
-
-## Time Breakdown: 4 Hours Total
+**Model**: XceptionNet (PyTorch) from FaceForensics++ implementation
+**Weights**: ffpp_c23.pth (pre-trained on FaceForensics++ dataset)
+**Face Detection**: dlib frontal face detector
+**Framework**: PyTorch (inference only, no training)
 
 ---
 
-## HOUR 1: Setup & Foundation (0:00 - 1:00)
+## Phase 1: Environment & Model Setup ✅ COMPLETED
 
-### Task 1.1: Environment Setup (15 mins)
+### Task 1.1: Project Structure (10 mins)
 
-- [ ] Create project directory structure
-- [ ] Set up Python virtual environment
-- [ ] Install core dependencies:
+- [x] Verify project directory structure
+- [x] Ensure yoink/Deepfake-Detection/ is intact (needed for model architecture)
+
+### Task 1.2: Download Pre-trained Weights (5 mins)
+
+- [x] Download weights from Google Drive
+- [x] Saved to: `model/ffpp_c23.pth` (83MB)
+
+### Task 1.3: Install Dependencies (10 mins)
+
+- [ ] Install dependencies:
   ```bash
-  pip install opencv-python tensorflow keras numpy pillow flask
-  pip install mediapipe mtcnn  # for face detection
+  pip install -r requirements.txt
   ```
-- [ ] Test imports and basic functionality
+- [ ] Or install individually:
+  ```bash
+  pip install torch torchvision opencv-python dlib pillow tqdm numpy streamlit
+  ```
 
-### Task 1.2: Download Pre-trained Models (20 mins)
+### Task 1.4: Test Model Loading (10 mins)
 
-- [ ] Download MesoNet or lightweight deepfake detection model
-  - Option A: Use pre-trained from GitHub (MesoNet-4)
-  - Option B: Use MobileNetV3 + simple classifier
-- [ ] Download face detection model (MTCNN or MediaPipe)
-- [ ] Test model loading and inference on sample image
-- [ ] Verify model size < 50MB
+- [ ] Run: `python -c "from src.detector import DeepfakeClassifier; c = DeepfakeClassifier()"`
+- [ ] Verify no errors
 
-### Task 1.3: Gather Test Data (15 mins)
-
-- [ ] Download 3-5 deepfake videos from FaceForensics++ or YouTube tutorials
-- [ ] Download 3-5 real videos for control
-- [ ] Create `test_videos/` folder with `fake/` and `real/` subfolders
-- [ ] Verify videos play correctly
-
-### Task 1.4: Create Basic Video Processor (10 mins)
-
-- [ ] Write function to extract frames from video
-- [ ] Write function to detect faces in frames
-- [ ] Test on one sample video
-- [ ] Save extracted frames to verify
-
-**Checkpoint**: Can extract faces from video ✓
+**Checkpoint 1**: Model loads correctly ✓
 
 ---
 
-## HOUR 2: Core Detection Engine (1:00 - 2:00)
+## Phase 2: Detection Pipeline ✅ COMPLETED
 
-### Task 2.1: Build Detection Pipeline (25 mins)
+### Task 2.1: Video Ingestion Module
 
-- [ ] Create `detector.py` with main detection class
-- [ ] Implement frame preprocessing (resize, normalize)
-- [ ] Implement face detection on each frame
-- [ ] Implement deepfake classification on detected faces
-- [ ] Calculate per-frame confidence scores
+- [x] `src/detector/video_processor.py` - Video loading, validation, frame extraction
 
-### Task 2.2: Implement Scoring System (20 mins)
+### Task 2.2: Face Detection Module
 
-- [ ] Aggregate frame-level scores to video-level score
-- [ ] Implement threshold-based classification (REAL/FAKE)
-- [ ] Add confidence percentage (0-100%)
-- [ ] Create anomaly detection flags:
-  - Face boundary inconsistencies
-  - Lighting variations
-  - Unnatural movements (frame-to-frame differences)
+- [x] `src/detector/face_detector.py` - dlib face detection with scaled bounding boxes
 
-### Task 2.3: Test Detection Engine (15 mins)
+### Task 2.3: Classification Module
 
-- [ ] Run detection on 2 fake videos
-- [ ] Run detection on 2 real videos
-- [ ] Verify scores make sense (fake < 50%, real > 50%)
-- [ ] Debug any issues
-- [ ] Save results to JSON for testing
+- [x] `src/detector/classifier.py` - XceptionNet deepfake classification
 
-**Checkpoint**: Detection engine produces scores ✓
+### Task 2.4: Pipeline Integration
+
+- [x] `src/detector/pipeline.py` - End-to-end detection pipeline
+
+**Checkpoint 2**: Pipeline outputs predictions per frame ✓
 
 ---
 
-## HOUR 3: User Interface (2:00 - 3:00)
+## Phase 3: Agentic Decision Layer ✅ COMPLETED
 
-### Task 3.1: Create Web Interface with Flask (40 mins)
+### Task 3.1: Decision Agent
 
-- [ ] Set up Flask app with basic routes
-- [ ] Create HTML template with:
-  - File upload form
-  - Video preview player
-  - Results display area
-  - Progress indicator
-- [ ] Add CSS for clean, professional look
-- [ ] Implement file upload endpoint
-- [ ] Implement processing endpoint that calls detector
-- [ ] Display results with visual scoring
+- [x] `src/agents/decision_agent.py` - Autonomous verdict determination
 
-### Task 3.2: Add Webcam Demo (Optional - 10 mins)
+### Task 3.2: Cognitive Response Generator
 
-- [ ] Create simple webcam capture route
-- [ ] Process frames in real-time (every 30 frames)
-- [ ] Display live authenticity score
-- [ ] Skip if running short on time
+- [x] `src/agents/cognitive_agent.py` - Human-readable explanations
 
-### Task 3.3: Results Visualization (10 mins)
+### Task 3.3: Main Analysis Interface
 
-- [ ] Create results page showing:
-  - Overall authenticity score with color coding
-  - List of detected anomalies
-  - Sample frames with bounding boxes
-  - Processing time
-- [ ] Add "Analyze Another Video" button
+- [x] `src/analyzer.py` - Complete analyzer combining all components
 
-**Checkpoint**: Working web interface ✓
+**Checkpoint 3**: Agentic analysis works end-to-end ✓
 
 ---
 
-## HOUR 4: Polish & Demo Preparation (3:00 - 4:00)
+## Phase 4: User Interface ✅ COMPLETED
 
-### Task 4.1: Error Handling & Edge Cases (15 mins)
+### Task 4.1: CLI Interface
 
-- [ ] Add try-catch blocks for file upload errors
-- [ ] Handle videos with no faces detected
-- [ ] Handle unsupported video formats
-- [ ] Add loading indicators
-- [ ] Add user-friendly error messages
+- [x] `main.py` - Full CLI with argparse, JSON output, quick mode
 
-### Task 4.2: Create Demo Materials (20 mins)
+### Task 4.2: Streamlit UI
 
-- [ ] Test full workflow with all sample videos
-- [ ] Record screen demo video showing:
-  - Upload fake video → Shows FAKE result
-  - Upload real video → Shows REAL result
-  - Highlight key features
-- [ ] Create README with:
-  - Installation instructions
-  - How to run
-  - Sample outputs
-  - Screenshots
+- [x] `frontend/app.py` - Beautiful web UI with:
+  - Video upload
+  - Progress indicators
+  - Verdict display with color coding
+  - Detailed explanations
+  - JSON report download
 
-### Task 4.3: Documentation & Code Cleanup (15 mins)
-
-- [ ] Add comments to code
-- [ ] Create requirements.txt
-- [ ] Write quick start guide
-- [ ] Add architecture diagram (simple flowchart)
-- [ ] Zip project folder for submission
-
-### Task 4.4: Final Testing & Buffer (10 mins)
-
-- [ ] Run end-to-end test
-- [ ] Fix any last-minute bugs
-- [ ] Prepare 2-minute demo walkthrough
-- [ ] Backup all files
-
-**Checkpoint**: POC ready for submission ✓
+**Checkpoint 4**: Working UI ✓
 
 ---
 
-## Priority Task List (If Running Behind)
+## Phase 5: Testing & Documentation
 
-### MUST HAVE (Core Demo):
+### Task 5.1: Test with Sample Videos (15 mins)
 
-1. Video upload functionality
-2. Basic deepfake detection (even simple model)
-3. Show authenticity score
-4. Working web interface
+- [ ] Test on known fake videos
+- [ ] Test on known real videos
+- [ ] Verify accuracy is reasonable
 
-### NICE TO HAVE:
+### Task 5.2: Documentation (15 mins)
 
-1. Detailed anomaly breakdown
-2. Webcam demo
-3. Fancy visualizations
-4. Multiple detection indicators
+- [ ] Update README.md
+- [ ] Add architecture diagram
 
-### CAN SKIP:
+### Task 5.3: Demo Recording (10 mins)
 
-1. Audio deepfake detection
-2. Batch processing
-3. Advanced security features
-4. Mobile app
+- [ ] Record screen demo
+- [ ] Take screenshots
+
+**Checkpoint 5**: POC ready for submission ✓
 
 ---
 
-## Quick Decision Tree
+## Project Structure
 
-**At 2:00 mark:**
-
-- ✅ Detection working? → Continue with UI
-- ❌ Detection issues? → Use simpler model or mock scores
-
-**At 3:00 mark:**
-
-- ✅ UI working? → Polish and document
-- ❌ UI buggy? → Create simple command-line demo instead
-
-**At 3:45 mark:**
-
-- ✅ Everything done? → Record demo video
-- ❌ Behind schedule? → Use screenshots + quick explanation
-
----
-
-## Code Templates to Speed Up
-
-### detector.py (skeleton)
-
-```python
-import cv2
-import numpy as np
-from tensorflow.keras.models import load_model
-
-class DeepfakeDetector:
-    def __init__(self, model_path):
-        self.model = load_model(model_path)
-
-    def process_video(self, video_path):
-        # Extract frames
-        # Detect faces
-        # Run inference
-        # Return score
-        pass
 ```
-
-### app.py (Flask skeleton)
-
-```python
-from flask import Flask, render_template, request
-import detector
-
-app = Flask(__name__)
-
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-@app.route('/analyze', methods=['POST'])
-def analyze():
-    file = request.files['video']
-    # Process video
-    # Return results
-    pass
+Agentic DeepFake Classifier/
+├── src/
+│   ├── __init__.py
+│   ├── analyzer.py              # Main analyzer (entry point)
+│   ├── detector/
+│   │   ├── __init__.py
+│   │   ├── video_processor.py   # Video loading & frame extraction
+│   │   ├── face_detector.py     # dlib face detection
+│   │   ├── classifier.py        # XceptionNet classification
+│   │   └── pipeline.py          # End-to-end pipeline
+│   └── agents/
+│       ├── __init__.py
+│       ├── decision_agent.py    # Verdict determination
+│       └── cognitive_agent.py   # Human explanations
+├── model/
+│   └── ffpp_c23.pth             # Pre-trained weights (83MB)
+├── yoink/Deepfake-Detection/    # FaceForensics++ model architecture
+├── frontend/
+│   └── app.py                   # Streamlit web UI
+├── main.py                      # CLI interface
+├── requirements.txt
+└── docs/
+    ├── POC.MD
+    └── tastks.md
 ```
 
 ---
 
-## Emergency Backup Plan
+## Quick Start
 
-If technical issues arise:
-
-1. **Model not working?**
-
-   - Use random scores based on filename patterns
-   - Focus on UI/UX demonstration
-
-2. **Video processing too slow?**
-
-   - Process only first 30 frames
-   - Use smaller test videos (5-10 seconds)
-
-3. **Flask issues?**
-
-   - Create Streamlit app instead (faster)
-   - Or use Jupyter notebook with ipywidgets
-
-4. **No time for web interface?**
-   - Create command-line tool with good output formatting
-   - Use rich library for terminal UI
-
----
-
-## Success Checklist
-
-Before submitting, ensure:
-
-- [ ] POC runs without errors
-- [ ] Can process at least one video successfully
-- [ ] Results look reasonable
-- [ ] Code is on GitHub/Drive
-- [ ] Demo video/screenshots ready
-- [ ] README explains how to run
-- [ ] requirements.txt included
-
----
-
-## Commands Quick Reference
+### CLI Usage:
 
 ```bash
-# Create environment
-python -m venv venv
-source venv/bin/activate  # or venv\Scripts\activate on Windows
+# Full analysis
+python main.py --video path/to/video.mp4
 
-# Install deps
-pip install -r requirements.txt
+# Quick check (5 frames only)
+python main.py --video path/to/video.mp4 --quick
 
-# Run app
-python app.py
+# Save results to JSON
+python main.py --video path/to/video.mp4 --output results.json
 
-# Test detector
-python detector.py --video test_videos/sample.mp4
+# Verbose output
+python main.py --video path/to/video.mp4 --verbose
+```
+
+### Streamlit UI:
+
+```bash
+streamlit run frontend/app.py
+```
+
+### Python API:
+
+```python
+from src.analyzer import DeepfakeAnalyzer
+
+analyzer = DeepfakeAnalyzer()
+result = analyzer.analyze("video.mp4")
+
+print(result)              # Pretty printed output
+print(result.verdict)      # REAL, FAKE, SUSPICIOUS, or INCONCLUSIVE
+print(result.confidence)   # 0.0 to 1.0
+print(result.explanation)  # Human-readable explanation
 ```
 
 ---
 
-**Remember**: A working simple demo is better than a broken complex one. Focus on the core detection → results flow first!
+## Decision Thresholds
+
+| Score Range | Verdict         | Color  |
+| ----------- | --------------- | ------ |
+| >= 0.7      | 🚨 FAKE         | Red    |
+| 0.4 - 0.7   | ⚠️ SUSPICIOUS   | Yellow |
+| < 0.4       | ✅ REAL         | Green  |
+| No faces    | ❓ INCONCLUSIVE | Gray   |
