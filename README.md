@@ -95,57 +95,48 @@ Verdict: REAL / FAKE / SUSPICIOUS
 
 ---
 
-## Project Structure
+## Architecture Diagram
 
 ```
-├── src/
-│   ├── analyzer.py           # Main entry point
-│   ├── detector/
-│   │   ├── video_processor.py
-│   │   ├── face_detector.py
-│   │   ├── classifier.py
-│   │   └── pipeline.py
-│   └── agents/
-│       ├── decision_agent.py
-│       └── cognitive_agent.py
-├── model/
-│   └── ffpp_c23.pth          # Pre-trained weights
-├── frontend/
-│   └── app.py                # Streamlit UI
-├── main.py                   # CLI interface
-└── docs/
-    ├── POC.MD
-    ├── ARCHITECTURE.md
-    └── tastks.md
+┌────────────────────────────────────────────────────────────────────────┐
+│                        USER INTERFACE LAYER                            │
+├────────────────────────────────────────────────────────────────────────┤
+│   main.py (CLI)          │        frontend/app.py (Streamlit)         │
+│   - Command line args    │        - File upload                       │
+│   - JSON output          │        - Visual results                    │
+└──────────────┬───────────┴────────────────┬────────────────────────────┘
+               │                            │
+               └──────────┬─────────────────┘
+                          ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                         ANALYZER (src/analyzer.py)                      │
+│                    Orchestrates the entire flow                         │
+└────────────────────────────────────────────────────────────────────────┘
+                          │
+          ┌───────────────┼───────────────┐
+          ▼               ▼               ▼
+┌─────────────────┐ ┌────────────┐ ┌─────────────────┐
+│ Detection       │ │ Decision   │ │ Cognitive       │
+│ Pipeline        │ │ Agent      │ │ Agent           │
+│ ┌─────────────┐ │ │            │ │                 │
+│ │Video Proc.  │ │ │ Scores →   │ │ Decision →      │
+│ └─────────────┘ │ │ Verdict    │ │ Explanation     │
+│ ┌─────────────┐ │ │            │ │                 │
+│ │Face Detect. │ │ │ Thresholds │ │ Templates       │
+│ └─────────────┘ │ │ Confidence │ │ Recommendations │
+│ ┌─────────────┐ │ │            │ │                 │
+│ │Classifier   │ │ │            │ │                 │
+│ └─────────────┘ │ │            │ │                 │
+└─────────────────┘ └────────────┘ └─────────────────┘
+          │
+          ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                    MODEL LAYER (yoink/Deepfake-Detection/)              │
+│                                                                         │
+│   network/xception.py  ←→  model/ffpp_c23.pth (weights)                │
+│                                                                         │
+└────────────────────────────────────────────────────────────────────────┘
 ```
-
----
-
-## Python API
-
-```python
-from src.analyzer import DeepfakeAnalyzer
-
-# Initialize (loads model once)
-analyzer = DeepfakeAnalyzer()
-
-# Analyze a video
-result = analyzer.analyze("video.mp4")
-
-print(result.verdict)       # REAL, FAKE, SUSPICIOUS, or INCONCLUSIVE
-print(result.confidence)    # 0.0 to 1.0
-print(result.explanation)   # Human-readable text
-```
-
----
-
-## Requirements
-
-- Python 3.8+
-- PyTorch 2.0+
-- OpenCV
-- dlib
-- Streamlit (for web UI)
 
 ---
 
@@ -202,19 +193,3 @@ This project is for educational and research purposes only.
 - The code in this repository is MIT licensed
 - Pre-trained model weights are subject to [FaceForensics++ terms](https://github.com/ondyari/FaceForensics)
 - For commercial use, please contact the original authors
-
----
-
-## Disclaimer
-
-This tool is designed for educational purposes and to help identify potentially manipulated media. It should not be used as the sole basis for any important decisions. Always verify findings through multiple sources and methods.
-
----
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
----
-
-_Built with ❤️ for the fight against misinformation_
