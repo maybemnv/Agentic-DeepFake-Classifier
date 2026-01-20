@@ -13,16 +13,16 @@ import logging
 
 from ..schemas import AnalysisResponse, ErrorResponse, AnalyzeSettings
 from ..dependencies import get_classifier
-from ..detection import DeepfakeClassifier
-from ...pipeline import DeepfakeAnalyzer
-from ...core.exceptions import VideoError, ClassifierError
+from src.detection import DeepfakeClassifier
+from src.pipeline import DeepfakeAnalyzer
+from src.core.exceptions import VideoError, ClassifierError
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/analyze", tags=["Analysis"])
 
 
 def create_analyzer_with_settings(
-    classifier: DeepfakeClassifier, settings: AnalyzeSettings
+        classifier: DeepfakeClassifier, settings: AnalyzeSettings
 ) -> DeepfakeAnalyzer:
     """Create analyzer with shared classifier and given settings."""
     return DeepfakeAnalyzer(

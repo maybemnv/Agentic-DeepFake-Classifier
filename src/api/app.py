@@ -1,15 +1,6 @@
-"""
-FastAPI Application
-Main API application setup.
-
-Model loaded once on first request, shared by all subsequent requests.
-"""
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
 from .routes import analysis_router, health_router
-
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
@@ -43,10 +34,6 @@ def create_app() -> FastAPI:
     async def startup_event():
         from ..detection import DeepfakeClassifier
         import torch
-        
-        # Load model once
-        # Check for CUDA availability for auto-selection, or force if env var set?
-        # User didn't specify, so let's default to safe auto-detect.
         use_cuda = torch.cuda.is_available()
         app.state.classifier = DeepfakeClassifier(use_cuda=use_cuda)
 
@@ -57,12 +44,9 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-
     app.include_router(health_router)
     app.include_router(analysis_router)
 
     return app
 
-
-# Create app instance
 app = create_app()
