@@ -119,27 +119,4 @@ async def analyze_video(
             os.unlink(temp_path)
 
 
-@router.post(
-    "/video",
-    response_model=AnalysisResponse,
-    responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
-    summary="Analyze a video for deepfakes (legacy endpoint)",
-    deprecated=True,
-)
-async def analyze_video_legacy(
-    file: UploadFile = File(..., description="Video file to analyze"),
-    sample_rate: float = Form(1.0, ge=0.5, le=5.0),
-    max_frames: Optional[int] = Form(None, ge=1, le=100),
-    fake_threshold: float = Form(0.7, ge=0.5, le=0.95),
-    suspicious_threshold: float = Form(0.4, ge=0.2, le=0.6),
-    classifier: DeepfakeClassifier = Depends(get_classifier),
-):
-    """Legacy endpoint - use POST /analyze instead."""
-    return await analyze_video(
-        file=file,
-        sample_rate=sample_rate,
-        max_frames=max_frames,
-        fake_threshold=fake_threshold,
-        suspicious_threshold=suspicious_threshold,
-        classifier=classifier,
-    )
+

@@ -93,14 +93,14 @@ class DeepfakeClassifier:
             # map_location ensures we can load GPU weights on CPU if needed
             state_dict = torch.load(self.weights_path, map_location=self.device)
             
-            # Handle potential DataParallel wrapping and arbitrary key renaming from legacy models
+            # Handle potential DataParallel wrapping and compatibility with pretrained weights
             new_state_dict = {}
             for k, v in state_dict.items():
                 name = k
                 if name.startswith('module.'):
                     name = name[7:]
                 
-                # Fix for FaceForensics++ legacy weights which use 'last_linear' instead of 'fc'
+                # Fix for FaceForensics++ pretrained weights compatibility
                 if 'last_linear' in name:
                     name = name.replace('last_linear', 'fc')
                     

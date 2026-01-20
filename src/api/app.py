@@ -22,7 +22,7 @@ def create_app() -> FastAPI:
 
         ## Endpoints
         - `POST /analyze` - Full video analysis (recommended)
-        - `POST /analyze/video` - Full video analysis (legacy)
+        - `POST /analyze` - Full video analysis
         - `GET /health` - Health check
         """,
         version="1.0.0",
