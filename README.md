@@ -24,26 +24,23 @@ An autonomous AI-powered deepfake detection system that analyzes video authentic
 
 ### Installation
 
-```bash
+````bash
 # Clone the repository
 git clone https://github.com/yourusername/Agentic-DeepFake-Classifier.git
 cd Agentic-DeepFake-Classifier
 
-# Install dependencies (using uv)
-uv add torch torchvision opencv-python pillow numpy tqdm streamlit
-uv add dlib-bin  # Pre-built dlib for Windows
+### Dependencies
 
-# Or using pip
-pip install -r requirements.txt
-```
+This project uses `uv` for dependency management.
 
-### Download Pre-trained Weights
+```bash
+uv sync
+````
 
-Download the FaceForensics++ pretrained weights from:
+### Model Management
 
-- [Google Drive - FF++ Weights](https://drive.google.com/drive/folders/1GNtk3hLq6sUGZCGx8fFttvyNYH8nrQS8)
-
-Save as `model/ffpp_c23.pth`
+The XceptionNet model is automatically downloaded from Hugging Face (`hf://Redgerd/XceptionNet-Keras`) on the first run.
+No manual weight download is required.
 
 ### Run the Web UI
 
@@ -131,10 +128,10 @@ Verdict: REAL / FAKE / SUSPICIOUS
           │
           ▼
 ┌────────────────────────────────────────────────────────────────────────┐
-│                    MODEL LAYER (yoink/Deepfake-Detection/)              │
-│                                                                         │
-│   network/xception.py  ←→  model/ffpp_c23.pth (weights)                │
-│                                                                         │
+│                    MODEL LAYER (Keras/HuggingFace)                      │
+│                                                                        │
+│   hf://Redgerd/XceptionNet-Keras (Automated Download)                  │
+│                                                                        │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 

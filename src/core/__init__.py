@@ -18,8 +18,6 @@ from .models import (
 from .config import (
     PROJECT_ROOT,
     MODEL_DIR,
-    YOINK_DIR,
-    DEFAULT_WEIGHTS_PATH,
     VideoConfig,
     FaceDetectionConfig,
     ClassifierConfig,
@@ -57,8 +55,6 @@ __all__ = [
     # Config
     'PROJECT_ROOT',
     'MODEL_DIR',
-    'YOINK_DIR',
-    'DEFAULT_WEIGHTS_PATH',
     'VideoConfig',
     'FaceDetectionConfig',
     'ClassifierConfig',

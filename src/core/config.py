@@ -14,11 +14,9 @@ import os
 # =============================================================================
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
+PROJECT_ROOT = Path(__file__).parent.parent.parent
 MODEL_DIR = PROJECT_ROOT / "model"
-YOINK_DIR = PROJECT_ROOT / "yoink" / "Deepfake-Detection"
 
-# Default weights file
-DEFAULT_WEIGHTS_PATH = MODEL_DIR / "ffpp_c23.pth"
 
 
 # =============================================================================

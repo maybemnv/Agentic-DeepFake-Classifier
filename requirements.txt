@@ -7,7 +7,7 @@ torchvision>=0.15.0
 # Image & Video Processing
 opencv-python>=4.8.0
 Pillow>=10.0.0
-dlib-lib>=19.24.0
+dlib-bin>=19.24.0
 
 # Data Processing
 numpy>=1.24.0
@@ -20,3 +20,6 @@ uvicorn>=0.23.0
 
 # Optional: If using GPU
 # --extra-index-url https://download.pytorch.org/whl/cu118
+
+keras
+huggingface_hub
