@@ -1,7 +1,7 @@
 """
 Agentic Deepfake Classifier - Streamlit Web Interface
 
-Modular, clean, and HTTP-only client for the Deepfake Detection API.
+Modular, professional, and HTTP-only client for the Deepfake Analysis API.
 """
 
 import os
@@ -38,7 +38,8 @@ class DeepfakeClient:
         try:
             with open(video_path, "rb") as f:
                 files = {"file": (os.path.basename(video_path), f, "video/mp4")}
-                # Convert settings to form data
+                
+                # Handle max_frames=0 (Unlimited) from UI
                 max_frames = settings.get("max_frames")
                 if max_frames == 0:
                     max_frames = None
@@ -55,7 +56,7 @@ class DeepfakeClient:
                 return response.json()
 
         except requests.exceptions.ConnectionError:
-            st.error(f"❌ Connection Error: Could not reach API at {self.base_url}. Is the backend running?")
+            st.error(f"Connection Error: Could not reach API at {self.base_url}. Please ensure the backend service is running.")
             return None
         except requests.exceptions.HTTPError as e:
             detail = "Unknown error"
@@ -63,34 +64,74 @@ class DeepfakeClient:
                 detail = e.response.json().get("detail", str(e))
             except json.JSONDecodeError:
                 detail = e.response.text
-            st.error(f"❌ API Error: {detail}")
+            st.error(f"API Error: {detail}")
             return None
         except Exception as e:
-            st.error(f"❌ Unexpected Error: {str(e)}")
+            st.error(f"Unexpected Error: {str(e)}")
             return None
 
 
 def inject_custom_css():
-    """Injects custom CSS for result styling."""
+    """Injects professional CSS for result styling."""
     st.markdown(
         """
         <style>
-            .stButton>button { width: 100%; border-radius: 8px; height: 3em; font-weight: bold; }
-            .verdict-box {
-                text-align: center; margin: 2rem 0; padding: 1rem; border-radius: 12px;
-                color: white; font-weight: 800; font-size: 2rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            .block-container { padding-top: 2rem; }
+            .stButton>button { 
+                width: 100%; 
+                border-radius: 6px; 
+                height: 3em; 
+                font-weight: 600;
+                background-color: #007bff;
+                color: white;
             }
-            .real { background: linear-gradient(135deg, #00c853, #69f0ae); }
-            .fake { background: linear-gradient(135deg, #d50000, #ff5252); }
-            .suspicious { background: linear-gradient(135deg, #ff6d00, #ffd180); }
-            .inconclusive { background: linear-gradient(135deg, #455a64, #90a4ae); }
+            .verdict-container {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 2rem 0;
+                padding: 1.5rem;
+                border-radius: 8px;
+                background-color: #f8f9fa;
+                border: 1px solid #e9ecef;
+            }
+            .verdict-label {
+                font-size: 1.2rem;
+                font-weight: 500;
+                color: #495057;
+                margin-right: 1rem;
+            }
+            .verdict-badge {
+                font-size: 1.8rem;
+                font-weight: 700;
+                padding: 0.5rem 1.5rem;
+                border-radius: 6px;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }
+            .real { background-color: #28a745; color: white; }
+            .fake { background-color: #dc3545; color: white; }
+            .suspicious { background-color: #ffc107; color: #212529; }
+            .inconclusive { background-color: #6c757d; color: white; }
             
-            .metric-card {
-                background: rgba(255, 255, 255, 0.05);
+            .metric-container {
+                background-color: #ffffff;
+                border: 1px solid #dee2e6;
+                border-radius: 6px;
                 padding: 1rem;
-                border-radius: 10px;
                 text-align: center;
-                border: 1px solid rgba(255, 255, 255, 0.1);
+                box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            }
+            .metric-value {
+                font-size: 1.5rem;
+                font-weight: 600;
+                color: #212529;
+            }
+            .metric-label {
+                font-size: 0.875rem;
+                color: #6c757d;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
             }
         </style>
         """,
@@ -99,47 +140,86 @@ def inject_custom_css():
 
 
 def display_results(result: Dict[str, Any]):
-    """Renders the analysis results in a structured format."""
+    """Renders the analysis results in a professional format."""
     st.divider()
     
     verdict = result.get("verdict", "INCONCLUSIVE")
     confidence = result.get("confidence", 0.0)
     
-    # Verdict Banner
+    # Verdict Section
     css_class = verdict.lower()
-    icon = {"REAL": "✅", "FAKE": "🚨", "SUSPICIOUS": "⚠️", "INCONCLUSIVE": "❓"}.get(verdict, "❓")
     
     st.markdown(
-        f'<div class="verdict-box {css_class}">{icon} {verdict}</div>',
+        f"""
+        <div class="verdict-container">
+            <span class="verdict-label">Analysis Verdict:</span>
+            <span class="verdict-badge {css_class}">{verdict}</span>
+        </div>
+        """,
         unsafe_allow_html=True
     )
 
-    # Detailed Metrics
-    st.markdown(f"### Confidence: **{confidence:.1%}**")
+    # Detailed Metrics Grid
+    st.markdown(f"#### Confidence Score: {confidence:.1%}")
     st.progress(confidence)
 
     c1, c2, c3, c4 = st.columns(4)
-    with c1: st.metric("Duration", f"{result.get('duration_seconds', 0):.1f}s")
-    with c2: st.metric("Analyzed Frames", result.get("frames_analyzed", 0))
-    with c3: st.metric("Faces Found", result.get("frames_with_faces", 0))
-    with c4: st.metric("Avg Fake Score", f"{result.get('average_fake_score', 0):.1%}")
+    
+    with c1:
+        st.markdown(
+            f"""
+            <div class="metric-container">
+                <div class="metric-value">{result.get('duration_seconds', 0):.1f}s</div>
+                <div class="metric-label">Duration</div>
+            </div>
+            """, unsafe_allow_html=True
+        )
+    with c2:
+        st.markdown(
+            f"""
+            <div class="metric-container">
+                <div class="metric-value">{result.get('frames_analyzed', 0)}</div>
+                <div class="metric-label">Frames Analyzed</div>
+            </div>
+            """, unsafe_allow_html=True
+        )
+    with c3:
+        st.markdown(
+            f"""
+            <div class="metric-container">
+                <div class="metric-value">{result.get('frames_with_faces', 0)}</div>
+                <div class="metric-label">Faces Detected</div>
+            </div>
+            """, unsafe_allow_html=True
+        )
+    with c4:
+        st.markdown(
+            f"""
+            <div class="metric-container">
+                <div class="metric-value">{result.get('average_fake_score', 0):.1%}</div>
+                <div class="metric-label">Avg Manipulation Score</div>
+            </div>
+            """, unsafe_allow_html=True
+        )
 
-    # Explanation Section
-    st.markdown("### 📝 Analysis Report")
-    st.info(result.get("verdict_text", "No detailed text available."))
+    st.markdown("### Analysis Report")
+    
+    with st.container():
+        st.markdown("#### Executive Summary")
+        st.info(result.get("verdict_text", "No summary available."))
 
-    with st.expander("🔬 Technical Explanation"):
-        st.write(result.get("explanation", "No technical explanation provided."))
+    with st.expander("Technical Details"):
+        st.markdown(result.get("explanation", "No technical explanation provided."))
 
     if result.get("recommendation"):
-        st.markdown("### 💡 Recommendation")
+        st.markdown("#### Recommendation")
         st.warning(result.get("recommendation"))
 
     # Download
     st.download_button(
-        label="📥 Download JSON Report",
+        label="Download Full Report (JSON)",
         data=json.dumps(result, indent=2),
-        file_name=f"report_{result.get('video_path', 'video')}.json",
+        file_name=f"analysis_report_{int(time.time())}.json",
         mime="application/json",
     )
 
@@ -147,41 +227,38 @@ def display_results(result: Dict[str, Any]):
 def sidebar_settings() -> Dict[str, Any]:
     """Renders sidebar and returns settings dict."""
     with st.sidebar:
-        st.title("⚙️ Configuration")
+        st.markdown("### Configuration")
         
-        st.subheader("Analysis Parameters")
+        st.markdown("#### Parameters")
         settings = {
-            "sample_rate": st.slider("Sampling Rate (FPS)", 0.5, 5.0, 1.0, 0.5, help="Higher FPS = slower but more accurate"),
-            "max_frames": st.number_input("Max Frames", 0, 500, 0, help="0 for unlimited"),
+            "sample_rate": st.slider("Sampling Rate (FPS)", 0.5, 5.0, 1.0, 0.5, help="Higher FPS increases accuracy but processing time."),
+            "max_frames": st.number_input("Max Frames", 0, 500, 0, help="Set to 0 for unlimited frames."),
             "fake_threshold": st.slider("Fake Threshold", 0.50, 0.99, 0.70),
             "suspicious_threshold": st.slider("Suspicious Threshold", 0.10, 0.60, 0.40),
         }
         
         st.divider()
-        st.markdown("### About")
-        st.caption("Agentic Deepfake Classifier v1.0")
-        st.caption("Running in HTTP Client Mode")
+        st.markdown("#### System Info")
+        st.text("Agentic Deepfake Classifier")
+        st.text("Version: 1.0.0")
+        st.text("Mode: Client-Server")
         
         return settings
 
 
 def main():
-    st.set_page_config(page_title="Deepfake Detective", page_icon="🕵️‍♂️", layout="wide")
+    st.set_page_config(page_title="Deepfake Analysis Dashboard", page_icon=None, layout="wide")
     inject_custom_css()
     
-    col1, col2 = st.columns([1, 4])
-    with col1:
-        st.markdown("# 🕵️‍♂️")
-    with col2:
-        st.title("Deepfake Detective")
-        st.markdown("#### Autonomous AI Video Authentication Agent")
+    st.title("Deepfake Analysis Dashboard")
+    st.markdown("Autonomous Video Authenticity Verification System")
 
     client = DeepfakeClient(API_BASE_URL)
     settings = sidebar_settings()
 
     st.divider()
     
-    uploaded_file = st.file_uploader("Upload Video for Analysis", type=["mp4", "mov", "avi", "webm"])
+    uploaded_file = st.file_uploader("Upload Video File", type=["mp4", "mov", "avi", "webm", "mkv"])
 
     if uploaded_file:
         # Save temp file for processing
@@ -189,29 +266,29 @@ def main():
             tmp_file.write(uploaded_file.read())
             tmp_path = tmp_file.name
 
-        col_video, col_action = st.columns([1, 1])
+        col_video, col_info = st.columns([1, 1])
         with col_video:
             st.video(tmp_path)
-            st.caption(f"Filename: {uploaded_file.name}")
+            st.caption(f"Source: {uploaded_file.name}")
 
-        with col_action:
-            st.markdown("### Ready to Analyze")
-            st.markdown("The agent will extract frames, detect faces, and enable its reasoning engine to determine authenticity.")
+        with col_info:
+            st.markdown("### Analysis Status")
+            st.markdown("Ready to initialize analysis pipeline.")
             
-            if st.button("🚀 Start Investigation"):
-                with st.spinner("🕵️ Agent is analyzing video content..."):
-                    # Simulate stages for UX
+            if st.button("Initialize Analysis"):
+                with st.spinner("Processing video stream..."):
+                    # UX Progress Simulation
                     progress_bar = st.progress(0)
                     status_text = st.empty()
                     
-                    status_text.text("Connecting to Cognitive Engine...")
+                    status_text.text("Establishing secure connection...")
                     progress_bar.progress(10)
-                    time.sleep(0.5)
+                    time.sleep(0.3)
                     
-                    status_text.text("Uploading Video Stream...")
+                    status_text.text("Transmitting video data...")
                     progress_bar.progress(30)
                     
-                    # Real API Call
+                    # Execute Analysis
                     result = client.analyze(tmp_path, settings)
                     
                     progress_bar.progress(100)
@@ -227,7 +304,7 @@ def main():
         except OSError:
             pass
     else:
-        st.info("👆 Upload a supported video file to begin the investigation.")
+        st.info("Please upload a video file to begin analysis.")
 
 if __name__ == "__main__":
     main()
