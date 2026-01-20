@@ -39,6 +39,17 @@ def create_app() -> FastAPI:
         redoc_url="/redoc",
     )
 
+    @app.on_event("startup")
+    async def startup_event():
+        from ..detection import DeepfakeClassifier
+        import torch
+        
+        # Load model once
+        # Check for CUDA availability for auto-selection, or force if env var set?
+        # User didn't specify, so let's default to safe auto-detect.
+        use_cuda = torch.cuda.is_available()
+        app.state.classifier = DeepfakeClassifier(use_cuda=use_cuda)
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],

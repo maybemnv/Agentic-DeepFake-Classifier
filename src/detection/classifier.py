@@ -1,42 +1,40 @@
 """
 Deepfake Classifier Module
-Pure inference class for XceptionNet-based deepfake classification using Keras.
-Only tensors in, probabilities out. No video logic, no face detection, no file IO.
+Pure PyTorch inference class for XceptionNet-based deepfake classification.
 """
 
 import os
-
-os.environ["KERAS_BACKEND"] = "torch"
-
-import keras
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 import numpy as np
 from PIL import Image
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from torchvision import transforms
 import logging
-from huggingface_hub import hf_hub_download
 
 from ..core import (
     ClassificationResult,
     ClassifierConfig,
     CLASSIFIER_CONFIG,
+    PROJECT_ROOT
 )
 from ..core.exceptions import ModelLoadError
+from .network import model_selection
 
 logger = logging.getLogger(__name__)
 
 
 class DeepfakeClassifier:
     """
-    Pure inference class for XceptionNet deepfake classification using Keras 3.
+    Pure inference class for XceptionNet deepfake classification using PyTorch.
 
-    ONLY accepts pre-processed face tensors (BGR numpy arrays subject to internal transform).
-    ONLY returns probability distributions (real, fake).
+    Model: FaceForensics++ XceptionNet (Transfer Learning)
+    Architecture: Xception
+    Weights: ffpp_c23.pth (Compressed C23)
     """
 
-    HF_REPO_ID = "Redgerd/XceptionNet-Keras"
-    HF_FILENAME = "XceptionNet.keras"
+    MODEL_RELATIVE_PATH = "model/ffpp_c23.pth"
 
     def __init__(
         self,
@@ -44,10 +42,20 @@ class DeepfakeClassifier:
         use_cuda: bool = False,
         config: ClassifierConfig = None,
     ):
+        """
+        Initialize the PyTorch Deepfake Classifier.
+
+        Args:
+            weights_path: Path to the .pth weights file. If None, uses default project path.
+            use_cuda: Whether to use CUDA if available.
+            config: Classifier configuration.
+        """
         self.config = config or CLASSIFIER_CONFIG
         self.use_cuda = use_cuda and torch.cuda.is_available()
         self.device = torch.device("cuda" if self.use_cuda else "cpu")
 
+        # Standard Xception/ImageNet preprocessing
+        # Resize to 299x299, Normalize mean=[0.5,0.5,0.5], std=[0.5,0.5,0.5]
         self.transform = transforms.Compose(
             [
                 transforms.Resize(self.config.input_size),
@@ -58,23 +66,57 @@ class DeepfakeClassifier:
             ]
         )
 
+        # Resolve weights path
+        if not weights_path:
+            self.weights_path = os.path.join(PROJECT_ROOT, self.MODEL_RELATIVE_PATH)
+        else:
+            self.weights_path = weights_path
+
         self.model = self._load_model()
         logger.info(f"DeepfakeClassifier initialized on {self.device}")
 
-    def _load_model(self):
+    def _load_model(self) -> nn.Module:
+        """
+        Load the PyTorch model and weights.
+        """
         try:
-            logger.info(f"Loading model from Hugging Face: {self.HF_REPO_ID}")
+            if not os.path.exists(self.weights_path):
+                raise FileNotFoundError(f"Model weights not found at: {self.weights_path}")
 
-            local_path = hf_hub_download(
-                repo_id=self.HF_REPO_ID, filename=self.HF_FILENAME, repo_type="model"
-            )
+            logger.info(f"Loading PyTorch model from: {self.weights_path}")
 
-            logger.info(f"Loading Keras model from: {local_path}")
-            model = keras.saving.load_model(local_path)
+            # Instantiate the model structure
+            # FaceForensics++ models typically use xception with 2 classes
+            model = model_selection(modelname='xception', num_out_classes=2, dropout=0.5)
+
+            # Load state dict
+            # map_location ensures we can load GPU weights on CPU if needed
+            state_dict = torch.load(self.weights_path, map_location=self.device)
+            
+            # Handle potential DataParallel wrapping and arbitrary key renaming from legacy models
+            new_state_dict = {}
+            for k, v in state_dict.items():
+                name = k
+                if name.startswith('module.'):
+                    name = name[7:]
+                
+                # Fix for FaceForensics++ legacy weights which use 'last_linear' instead of 'fc'
+                if 'last_linear' in name:
+                    name = name.replace('last_linear', 'fc')
+                    
+                new_state_dict[name] = v
+            
+            model.load_state_dict(new_state_dict)
+
+            # Set to eval mode and move to device
+            model.to(self.device)
+            model.eval()
 
             return model
+
         except Exception as e:
-            raise ModelLoadError(f"Failed to load Keras model: {e}")
+            logger.error(f"Failed to load model: {e}")
+            raise ModelLoadError(f"Failed to load PyTorch model: {e}")
 
     def preprocess(self, image: np.ndarray) -> torch.Tensor:
         """
@@ -84,11 +126,12 @@ class DeepfakeClassifier:
             image: BGR numpy array (face cropped, any size)
 
         Returns:
-            Preprocessed tensor ready for inference
+            Preprocessed tensor [1, 3, 299, 299]
         """
         import cv2
 
         if len(image.shape) == 3 and image.shape[2] == 3:
+            # Convert BGR to RGB
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
         pil_image = Image.fromarray(image)
@@ -98,6 +141,29 @@ class DeepfakeClassifier:
         # Add batch dimension [1, 3, 299, 299]
         tensor = tensor.unsqueeze(0)
         return tensor.to(self.device)
+
+    def predict(self, face_tensor: torch.Tensor) -> Dict[str, float]:
+        """
+        Perform inference on a preprocessed face tensor.
+
+        Args:
+            face_tensor: Torch tensor of shape [1, 3, 299, 299]
+
+        Returns:
+            Dictionary with 'real', 'fake', 'confidence' scores.
+        """
+        with torch.no_grad():
+            logits = self.model(face_tensor)
+            probs = F.softmax(logits, dim=1).cpu().numpy()[0]
+        
+        real_prob = float(probs[0])
+        fake_prob = float(probs[1])
+        
+        return {
+            "real": real_prob,
+            "fake": fake_prob,
+            "confidence": max(real_prob, fake_prob)
+        }
 
     def classify(self, face_image: np.ndarray) -> ClassificationResult:
         """
@@ -110,55 +176,23 @@ class DeepfakeClassifier:
             ClassificationResult
         """
         input_tensor = self.preprocess(face_image)
+        result = self.predict(input_tensor)
 
-        # Keras 3 model call with Torch backend accepts Torch tensors
-        # Output is expected to be [1, 2] logits or probs depending on model
-        # The Redgerd/XceptionNet-Keras model likely returns logits.
-        # Let's assume standard behavior and apply softmax if needed,
-        # but pure Keras models often include activation if it's "inference ready".
-        # However, safe to check.
-
-        # NOTE: Keras models usually expect channel-last [N, H, W, C] unless configured otherwise.
-        # With torch backend, it follows image_data_format(). Default is usually 'channels_last'.
-        # We might need to permute.
-
-        if keras.config.image_data_format() == "channels_last":
-            # Input tensor is [1, 3, 299, 299] (channels_first)
-            input_tensor = input_tensor.permute(0, 2, 3, 1)  # [1, 299, 299, 3]
-
-        output = self.model(input_tensor)
-
-        # Convert output to numpy
-        if hasattr(output, "detach"):
-            probs = output.detach().cpu().numpy()[0]
-        else:
-            probs = np.array(output)[0]
-
-        # Ensure probabilities sum to 1 (apply softmax if raw logits)
-        # Deepfake models often output raw logits.
-        # If values are not in [0, 1], apply softmax.
-        if np.any(probs < 0) or np.any(probs > 1.01):
-            exp_preds = np.exp(probs)
-            probs = exp_preds / np.sum(exp_preds)
-
-        real_prob = float(probs[0])
-        # Assumption: Index 0 is Real, Index 1 is Fake.
-        # Verify this with model card or test. Standard FF++ is usually 0: Fake, 1: Real OR 0: Real, 1: Fake.
-        # Let's stick to existing logic: 0=Real, 1=Fake.
-        fake_prob = float(probs[1])
-
-        prediction = "FAKE" if fake_prob > real_prob else "REAL"
+        prediction = "FAKE" if result["fake"] > result["real"] else "REAL"
 
         return ClassificationResult(
             prediction=prediction,
-            real_probability=real_prob,
-            fake_probability=fake_prob,
-            confidence=max(real_prob, fake_prob),
+            real_probability=result["real"],
+            fake_probability=result["fake"],
+            confidence=result["confidence"],
         )
 
     def classify_batch(
         self, face_images: List[np.ndarray]
     ) -> List[ClassificationResult]:
+        """
+        Classify a batch of faces.
+        """
         if not face_images:
             return []
 
@@ -168,24 +202,15 @@ class DeepfakeClassifier:
             t = self.preprocess(img)
             tensors.append(t)
 
-        batch = torch.cat(tensors, dim=0)  # [N, 3, H, W]
+        # Concatenate: [N, 3, 299, 299]
+        batch_tensor = torch.cat(tensors, dim=0)
 
-        if keras.config.image_data_format() == "channels_last":
-            batch = batch.permute(0, 2, 3, 1)  # [N, H, W, 3]
-
-        outputs = self.model(batch)
-
-        if hasattr(outputs, "detach"):
-            probs_batch = outputs.detach().cpu().numpy()
-        else:
-            probs_batch = np.array(outputs)
+        with torch.no_grad():
+            logits = self.model(batch_tensor)
+            probs_batch = F.softmax(logits, dim=1).cpu().numpy()
 
         results = []
         for probs in probs_batch:
-            if np.any(probs < 0) or np.any(probs > 1.01):
-                exp_preds = np.exp(probs)
-                probs = exp_preds / np.sum(exp_preds)
-
             real_prob, fake_prob = float(probs[0]), float(probs[1])
             results.append(
                 ClassificationResult(

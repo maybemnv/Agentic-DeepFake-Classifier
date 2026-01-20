@@ -127,20 +127,21 @@ class DeepfakeAnalyzer:
 
 def analyze_video(
     video_path: str,
-    weights_path: Optional[str] = None,
+    classifier: "DeepfakeClassifier",
     sample_rate: float = 1.0,
     max_frames: Optional[int] = None,
     show_progress: bool = True,
 ) -> AnalysisResult:
     """
     Convenience function for one-off video analysis.
-
-    Creates and manages its own classifier instance.
-    For server use, create DeepfakeAnalyzer explicitly with a shared classifier.
+    
+    Args:
+        video_path: Path to video
+        classifier: Initialized DeepfakeClassifier instance
+        sample_rate: Frame sample rate
+        max_frames: Max frames
+        show_progress: Show progress bar
     """
-    from ..detection import DeepfakeClassifier
-
-    classifier = DeepfakeClassifier(weights_path=weights_path)
     analyzer = DeepfakeAnalyzer(
         classifier=classifier, sample_rate=sample_rate, max_frames=max_frames
     )
