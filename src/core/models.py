@@ -15,6 +15,7 @@ import numpy as np
 # ENUMS
 # =============================================================================
 
+
 class Verdict(str, Enum):
     """Possible verdicts from the decision agent."""
 
@@ -50,6 +51,7 @@ class Verdict(str, Enum):
 # VIDEO MODELS
 # =============================================================================
 
+
 class VideoMetadata(BaseModel):
     """Metadata about the processed video."""
 
@@ -66,6 +68,7 @@ class VideoMetadata(BaseModel):
 # FACE DETECTION MODELS
 # =============================================================================
 
+
 class FaceResult(BaseModel):
     """Result of face detection for a single face."""
 
@@ -79,6 +82,7 @@ class FaceResult(BaseModel):
 # =============================================================================
 # CLASSIFICATION MODELS
 # =============================================================================
+
 
 class ClassificationResult(BaseModel):
     """Result of deepfake classification."""
@@ -104,6 +108,7 @@ class ClassificationResult(BaseModel):
 # =============================================================================
 # FRAME ANALYSIS MODELS
 # =============================================================================
+
 
 class FrameAnalysis(BaseModel):
     """Analysis result for a single frame."""
@@ -142,9 +147,7 @@ class VideoAnalysis(BaseModel):
     @property
     def fake_scores(self) -> list[float]:
         return [
-            f.classification.fake_probability
-            for f in self.frames_with_faces
-            if f.classification
+            f.classification.fake_probability for f in self.frames_with_faces if f.classification
         ]
 
     @computed_field
@@ -157,6 +160,7 @@ class VideoAnalysis(BaseModel):
 # =============================================================================
 # DECISION MODELS
 # =============================================================================
+
 
 class DecisionResult(BaseModel):
     """Result from the decision agent."""
@@ -185,6 +189,7 @@ class DecisionResult(BaseModel):
 # COGNITIVE RESPONSE MODELS
 # =============================================================================
 
+
 class CognitiveResponse(BaseModel):
     """Human-readable response from cognitive agent."""
 
@@ -199,6 +204,7 @@ class CognitiveResponse(BaseModel):
 # FINAL ANALYSIS RESULT
 # =============================================================================
 
+
 class AnalysisResult(BaseModel):
     """Complete analysis result from the agentic analyzer."""
 
@@ -207,7 +213,7 @@ class AnalysisResult(BaseModel):
         json_schema_serializers={
             Verdict: lambda v: v.value,
             datetime: lambda dt: dt.isoformat(),
-        }
+        },
     )
 
     video_path: str
@@ -228,10 +234,11 @@ class AnalysisResult(BaseModel):
 
     def __str__(self) -> str:
         from pathlib import Path
+
         return (
-            f"\n{'='*60}\n"
+            f"\n{'=' * 60}\n"
             f"DEEPFAKE ANALYSIS RESULT\n"
-            f"{'='*60}\n"
+            f"{'=' * 60}\n"
             f"\n📁 Video: {Path(self.video_path).name}\n"
             f"⏱️  Duration: {self.duration_seconds:.1f}s\n"
             f"\n{self.verdict.emoji} VERDICT: {self.verdict.value}\n"
@@ -245,7 +252,7 @@ class AnalysisResult(BaseModel):
             f"• Score range: {self.min_fake_score:.1%} - {self.max_fake_score:.1%}\n"
             f"\n--- Recommendation ---\n"
             f"{self.recommendation}\n"
-            f"{'='*60}\n"
+            f"{'=' * 60}\n"
         )
 
     def to_dict(self) -> dict:
@@ -271,6 +278,7 @@ class AnalysisResult(BaseModel):
 # QUALITY ASSESSMENT MODELS
 # =============================================================================
 
+
 class VideoQualityMetrics(BaseModel):
     """Video quality assessment metrics."""
 
@@ -286,6 +294,7 @@ class VideoQualityMetrics(BaseModel):
 # =============================================================================
 # BATCH PROCESSING MODELS
 # =============================================================================
+
 
 class BatchJobStatus(str, Enum):
     """Status of a batch processing job."""
@@ -314,6 +323,7 @@ class BatchJobInfo(BaseModel):
 # =============================================================================
 # COMPARATIVE ANALYSIS MODELS
 # =============================================================================
+
 
 class ComparativeAnalysisResult(BaseModel):
     """Result of comparative analysis between two videos."""

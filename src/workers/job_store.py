@@ -9,7 +9,6 @@ from __future__ import annotations
 import json
 import uuid
 from abc import ABC, abstractmethod
-from datetime import datetime
 from typing import Any
 
 from ..core import get_logger
@@ -76,6 +75,7 @@ class RedisJobStore(JobStore):
 
     def __init__(self, redis_url: str) -> None:
         import redis as redis_lib
+
         self._client = redis_lib.from_url(redis_url, decode_responses=True)
         # Verify connection on init
         self._client.ping()
@@ -141,6 +141,7 @@ def create_job_store() -> JobStore:
     """
     try:
         from ..core.config import settings
+
         redis_url = (
             f"redis://:{settings.redis_password}@{settings.redis_host}:{settings.redis_port}/{settings.redis_db}"
             if settings.redis_password

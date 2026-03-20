@@ -20,6 +20,7 @@ TIMEOUT_SECONDS = 300
 # HTTP Client
 # ---------------------------------------------------------------------------
 
+
 class DeepfakeClient:
     """HTTP client for the Deepfake Analysis API."""
 
@@ -146,6 +147,7 @@ def inject_css(dark: bool) -> None:
 # UI helpers
 # ---------------------------------------------------------------------------
 
+
 def verdict_html(verdict: str) -> str:
     css = verdict.lower()
     return f"""
@@ -173,13 +175,25 @@ def _show_result(result: dict[str, Any], title: str = "Analysis Result") -> None
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        st.markdown(metric_box(f"{result.get('duration_seconds', 0):.1f}s", "Duration"), unsafe_allow_html=True)
+        st.markdown(
+            metric_box(f"{result.get('duration_seconds', 0):.1f}s", "Duration"),
+            unsafe_allow_html=True,
+        )
     with c2:
-        st.markdown(metric_box(str(result.get("frames_analyzed", 0)), "Frames Analyzed"), unsafe_allow_html=True)
+        st.markdown(
+            metric_box(str(result.get("frames_analyzed", 0)), "Frames Analyzed"),
+            unsafe_allow_html=True,
+        )
     with c3:
-        st.markdown(metric_box(str(result.get("frames_with_faces", 0)), "Faces Detected"), unsafe_allow_html=True)
+        st.markdown(
+            metric_box(str(result.get("frames_with_faces", 0)), "Faces Detected"),
+            unsafe_allow_html=True,
+        )
     with c4:
-        st.markdown(metric_box(f"{result.get('average_fake_score', 0):.1%}", "Avg Fake Score"), unsafe_allow_html=True)
+        st.markdown(
+            metric_box(f"{result.get('average_fake_score', 0):.1%}", "Avg Fake Score"),
+            unsafe_allow_html=True,
+        )
 
     st.info(result.get("verdict_text", ""))
 
@@ -193,6 +207,7 @@ def _show_result(result: dict[str, Any], title: str = "Analysis Result") -> None
     if frame_scores:
         with st.expander("Frame-by-Frame Fake Score Chart"):
             import pandas as pd
+
             df = pd.DataFrame({"Frame": range(len(frame_scores)), "Fake Score": frame_scores})
             st.bar_chart(df.set_index("Frame"))
             st.caption("Each bar = one analysed frame. Higher = more likely manipulated.")
@@ -238,6 +253,7 @@ def _show_comparison(result: dict[str, Any], desc1: str, desc2: str) -> None:
     if scores1 or scores2:
         with st.expander("Score Heatmap — Frame Comparison"):
             import pandas as pd
+
             max_len = max(len(scores1), len(scores2))
             # Pad shorter list
             s1 = scores1 + [None] * (max_len - len(scores1))
@@ -252,6 +268,7 @@ def _show_comparison(result: dict[str, Any], desc1: str, desc2: str) -> None:
 # ---------------------------------------------------------------------------
 # Sidebar / Settings
 # ---------------------------------------------------------------------------
+
 
 def sidebar_settings() -> tuple[dict[str, Any], bool, str]:
     with st.sidebar:
@@ -285,6 +302,7 @@ def sidebar_settings() -> tuple[dict[str, Any], bool, str]:
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main() -> None:
     st.set_page_config(
         page_title="Deepfake Analysis Dashboard",
@@ -302,9 +320,7 @@ def main() -> None:
     client = DeepfakeClient(API_BASE_URL)
 
     if mode == "Single Video":
-        uploaded = st.file_uploader(
-            "Upload Video", type=["mp4", "mov", "avi", "webm", "mkv"]
-        )
+        uploaded = st.file_uploader("Upload Video", type=["mp4", "mov", "avi", "webm", "mkv"])
         if uploaded:
             with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
                 tmp.write(uploaded.read())
@@ -338,10 +354,14 @@ def main() -> None:
         st.markdown("### Upload two videos to compare side-by-side")
         col1, col2 = st.columns(2)
         with col1:
-            f1 = st.file_uploader("Video 1 (Original)", type=["mp4", "mov", "avi", "webm", "mkv"], key="v1")
+            f1 = st.file_uploader(
+                "Video 1 (Original)", type=["mp4", "mov", "avi", "webm", "mkv"], key="v1"
+            )
             desc1 = st.text_input("Label", value="Original", key="d1")
         with col2:
-            f2 = st.file_uploader("Video 2 (Suspected Deepfake)", type=["mp4", "mov", "avi", "webm", "mkv"], key="v2")
+            f2 = st.file_uploader(
+                "Video 2 (Suspected Deepfake)", type=["mp4", "mov", "avi", "webm", "mkv"], key="v2"
+            )
             desc2 = st.text_input("Label", value="Suspected Deepfake", key="d2")
 
         if f1 and f2:

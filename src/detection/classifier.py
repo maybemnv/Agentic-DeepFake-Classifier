@@ -9,7 +9,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 from PIL import Image
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict
 from torchvision import transforms
 import logging
 
@@ -53,15 +53,14 @@ class DeepfakeClassifier:
             [
                 transforms.Resize(settings.input_size),
                 transforms.ToTensor(),
-                transforms.Normalize(
-                    [settings.input_size] * 3, [0.5, 0.5, 0.5]
-                ),
+                transforms.Normalize([settings.input_size] * 3, [0.5, 0.5, 0.5]),
             ]
         )
 
         # Resolve weights path
         if not weights_path:
             from pathlib import Path
+
             self.weights_path = Path(settings.model_path)
             if not self.weights_path.is_absolute():
                 self.weights_path = Path.cwd() / self.weights_path
@@ -83,25 +82,25 @@ class DeepfakeClassifier:
 
             # Instantiate the model structure
             # FaceForensics++ models typically use xception with 2 classes
-            model = model_selection(modelname='xception', num_out_classes=2, dropout=0.5)
+            model = model_selection(modelname="xception", num_out_classes=2, dropout=0.5)
 
             # Load state dict
             # map_location ensures we can load GPU weights on CPU if needed
             state_dict = torch.load(self.weights_path, map_location=self.device)
-            
+
             # Handle potential DataParallel wrapping and compatibility with pretrained weights
             new_state_dict = {}
             for k, v in state_dict.items():
                 name = k
-                if name.startswith('module.'):
+                if name.startswith("module."):
                     name = name[7:]
-                
+
                 # Fix for FaceForensics++ pretrained weights compatibility
-                if 'last_linear' in name:
-                    name = name.replace('last_linear', 'fc')
-                    
+                if "last_linear" in name:
+                    name = name.replace("last_linear", "fc")
+
                 new_state_dict[name] = v
-            
+
             model.load_state_dict(new_state_dict)
 
             # Set to eval mode and move to device
@@ -151,15 +150,11 @@ class DeepfakeClassifier:
         with torch.no_grad():
             logits = self.model(face_tensor)
             probs = F.softmax(logits, dim=1).cpu().numpy()[0]
-        
+
         real_prob = float(probs[0])
         fake_prob = float(probs[1])
-        
-        return {
-            "real": real_prob,
-            "fake": fake_prob,
-            "confidence": max(real_prob, fake_prob)
-        }
+
+        return {"real": real_prob, "fake": fake_prob, "confidence": max(real_prob, fake_prob)}
 
     def classify(self, face_image: np.ndarray) -> ClassificationResult:
         """
@@ -183,9 +178,7 @@ class DeepfakeClassifier:
             confidence=result["confidence"],
         )
 
-    def classify_batch(
-        self, face_images: List[np.ndarray]
-    ) -> List[ClassificationResult]:
+    def classify_batch(self, face_images: List[np.ndarray]) -> List[ClassificationResult]:
         """
         Classify a batch of faces.
         """

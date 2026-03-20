@@ -38,13 +38,8 @@ class FaceDetector:
         self.target_size = target_size
         self.detector = dlib.get_frontal_face_detector()
         logger.info("Initialized dlib frontal face detector")
-    
-    def _get_scaled_bbox(
-        self,
-        face: dlib.rectangle,
-        width: int,
-        height: int
-    ) -> tuple:
+
+    def _get_scaled_bbox(self, face: dlib.rectangle, width: int, height: int) -> tuple:
         """Get scaled bounding box from dlib face detection."""
         x1, y1 = face.left(), face.top()
         x2, y2 = face.right(), face.bottom()
@@ -62,11 +57,7 @@ class FaceDetector:
 
         return new_x1, new_y1, size, size
 
-    def detect_faces(
-        self,
-        image: np.ndarray,
-        max_faces: Optional[int] = None
-    ) -> List[FaceResult]:
+    def detect_faces(self, image: np.ndarray, max_faces: Optional[int] = None) -> List[FaceResult]:
         """
         Detect all faces in an image.
 
@@ -91,18 +82,16 @@ class FaceDetector:
                 continue
 
             x, y, w, h = self._get_scaled_bbox(face, width, height)
-            cropped = image[y:y+h, x:x+w]
+            cropped = image[y : y + h, x : x + w]
 
             if cropped.size == 0:
                 continue
 
             cropped_resized = cv2.resize(cropped, self.target_size)
 
-            results.append(FaceResult(
-                bbox=(x, y, w, h),
-                cropped_face=cropped_resized,
-                confidence=1.0
-            ))
+            results.append(
+                FaceResult(bbox=(x, y, w, h), cropped_face=cropped_resized, confidence=1.0)
+            )
 
             if max_faces and len(results) >= max_faces:
                 break

@@ -3,8 +3,6 @@ API Dependencies
 Shared dependencies for API routes.
 """
 
-from typing import Any
-from functools import lru_cache
 from fastapi import Request, HTTPException, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
@@ -49,6 +47,7 @@ async def get_current_user_from_auth(
             return None
 
         from .routes.auth import users_db
+
         user = users_db.get(token_data.user_id)
         if user is None or not user.is_active:
             return None
@@ -83,6 +82,7 @@ async def require_auth(
         )
 
     from .routes.auth import users_db
+
     user = users_db.get(token_data.user_id)
     if user is None or not user.is_active:
         raise HTTPException(
@@ -109,6 +109,7 @@ async def get_api_key_user(
         return None
 
     from datetime import datetime
+
     if api_key_obj.expires_at and datetime.utcnow() > api_key_obj.expires_at:
         return None
 

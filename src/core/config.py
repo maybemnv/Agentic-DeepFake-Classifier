@@ -41,8 +41,7 @@ class Settings(BaseSettings):
     # Authentication
     # =============================================================================
     secret_key: str = Field(
-        default="change-me-in-production",
-        description="Secret key for JWT tokens"
+        default="change-me-in-production", description="Secret key for JWT tokens"
     )
     access_token_expire_minutes: int = Field(
         default=30, ge=1, description="Access token expiration in minutes"
@@ -55,12 +54,8 @@ class Settings(BaseSettings):
     # =============================================================================
     # Rate Limiting
     # =============================================================================
-    rate_limit_per_minute: int = Field(
-        default=10, ge=1, description="Rate limit per minute"
-    )
-    rate_limit_burst: int = Field(
-        default=20, ge=1, description="Rate limit burst"
-    )
+    rate_limit_per_minute: int = Field(default=10, ge=1, description="Rate limit per minute")
+    rate_limit_burst: int = Field(default=20, ge=1, description="Rate limit burst")
 
     # =============================================================================
     # Model Settings
@@ -102,8 +97,7 @@ class Settings(BaseSettings):
     # Database
     # =============================================================================
     database_url: str = Field(
-        default="sqlite+aiosqlite:///./deepfake_analyzer.db",
-        description="Database URL"
+        default="sqlite+aiosqlite:///./deepfake_analyzer.db", description="Database URL"
     )
 
     # =============================================================================
@@ -117,7 +111,7 @@ class Settings(BaseSettings):
     # =============================================================================
     allowed_origins: str = Field(
         default="http://localhost:8501,http://localhost:3000",
-        description="Comma-separated allowed origins"
+        description="Comma-separated allowed origins",
     )
     allow_credentials: bool = Field(default=True, description="Allow credentials in CORS")
 
@@ -127,8 +121,7 @@ class Settings(BaseSettings):
         """Validate that secret key is changed in production."""
         if v == "change-me-in-production" and os.getenv("APP_ENV", "development") == "production":
             raise ValueError(
-                "SECRET_KEY must be changed in production. "
-                "Generate one with: openssl rand -hex 32"
+                "SECRET_KEY must be changed in production. Generate one with: openssl rand -hex 32"
             )
         return v
 

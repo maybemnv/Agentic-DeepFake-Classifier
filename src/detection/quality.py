@@ -5,7 +5,6 @@ Analyzes video quality before deepfake detection.
 
 import cv2
 import numpy as np
-from pathlib import Path
 from typing import Literal
 import logging
 
@@ -119,12 +118,14 @@ class VideoQualityAssessor:
             lighting_score=float(np.mean(lighting_scores)) if lighting_scores else 0.0,
             face_clarity_score=float(np.mean(clarity_scores)) if clarity_scores else 0.0,
             overall_quality=float(
-                np.mean([
-                    np.mean(resolution_scores) if resolution_scores else 0,
-                    np.mean(compression_scores) if compression_scores else 0,
-                    np.mean(lighting_scores) if lighting_scores else 0,
-                    np.mean(clarity_scores) if clarity_scores else 0,
-                ])
+                np.mean(
+                    [
+                        np.mean(resolution_scores) if resolution_scores else 0,
+                        np.mean(compression_scores) if compression_scores else 0,
+                        np.mean(lighting_scores) if lighting_scores else 0,
+                        np.mean(clarity_scores) if clarity_scores else 0,
+                    ]
+                )
             ),
             issues=list(issues),
             recommendations=list(recommendations),

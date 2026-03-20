@@ -11,7 +11,6 @@ import logging
 
 from ..security import (
     Token,
-    TokenData,
     UserCreate,
     User,
     APIKey,

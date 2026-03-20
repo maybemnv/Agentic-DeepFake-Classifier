@@ -6,10 +6,9 @@ Receives classifier as dependency - does not create it.
 
 from __future__ import annotations
 
-from pathlib import Path
 import logging
 
-from ..core import AnalysisResult, Verdict
+from ..core import AnalysisResult
 from ..agents import DecisionAgent, CognitiveAgent
 from ..detection import DeepfakeClassifier
 from .detection import DetectionPipeline
@@ -135,7 +134,7 @@ def analyze_video(
 ) -> AnalysisResult:
     """
     Convenience function for one-off video analysis.
-    
+
     Args:
         video_path: Path to video
         classifier: Initialized DeepfakeClassifier instance

@@ -8,6 +8,7 @@ from pathlib import Path
 
 try:
     import onnxruntime as ort
+
     ONNX_AVAILABLE = True
 except ImportError:
     ONNX_AVAILABLE = False
@@ -40,7 +41,9 @@ class ONNXClassifier:
             num_threads: Number of CPU threads
         """
         if not ONNX_AVAILABLE:
-            raise ImportError("onnxruntime-gpu is required. Install with: pip install onnxruntime-gpu")
+            raise ImportError(
+                "onnxruntime-gpu is required. Install with: pip install onnxruntime-gpu"
+            )
 
         self.model_path = Path(onnx_model_path)
         self.use_cuda = use_cuda
@@ -147,11 +150,13 @@ class ONNXClassifier:
             real_prob = float(probs[0])
             fake_prob = float(probs[1])
 
-            results.append({
-                "real": real_prob,
-                "fake": fake_prob,
-                "confidence": max(real_prob, fake_prob),
-            })
+            results.append(
+                {
+                    "real": real_prob,
+                    "fake": fake_prob,
+                    "confidence": max(real_prob, fake_prob),
+                }
+            )
 
         return results
 

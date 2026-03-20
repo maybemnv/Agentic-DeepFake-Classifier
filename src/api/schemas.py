@@ -41,6 +41,7 @@ class TierEnum(str, Enum):
 # REQUEST SCHEMAS
 # =============================================================================
 
+
 class AnalyzeRequest(BaseModel):
     """Request for video analysis (when using URL)."""
 
@@ -83,6 +84,7 @@ class ComparativeAnalysisRequest(BaseModel):
 # =============================================================================
 # RESPONSE SCHEMAS
 # =============================================================================
+
 
 class HealthResponse(BaseModel):
     """Health check response."""

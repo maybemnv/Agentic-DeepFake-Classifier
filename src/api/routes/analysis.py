@@ -137,8 +137,11 @@ async def analyze_video(
     - **include_quality**: Include video quality assessment (default: true)
     """
     allowed_types = {
-        "video/mp4", "video/avi", "video/quicktime",
-        "video/x-matroska", "video/webm",
+        "video/mp4",
+        "video/avi",
+        "video/quicktime",
+        "video/x-matroska",
+        "video/webm",
     }
     if file.content_type and file.content_type not in allowed_types:
         raise HTTPException(
@@ -458,15 +461,21 @@ async def process_batch_job(
             errors.append(f"{file.filename}: {str(e)}")
             failed += 1
 
-        store.update(job_id, {
-            "processed_videos": processed,
-            "failed_videos": failed,
-            "results": results,
-            "errors": errors,
-        })
+        store.update(
+            job_id,
+            {
+                "processed_videos": processed,
+                "failed_videos": failed,
+                "results": results,
+                "errors": errors,
+            },
+        )
 
-    store.update(job_id, {
-        "status": "COMPLETED",
-        "completed_at": datetime.utcnow().isoformat(),
-    })
+    store.update(
+        job_id,
+        {
+            "status": "COMPLETED",
+            "completed_at": datetime.utcnow().isoformat(),
+        },
+    )
     logger.info(f"Batch job {job_id} completed: {processed}/{len(files)}")

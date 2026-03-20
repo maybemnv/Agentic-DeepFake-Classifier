@@ -4,9 +4,8 @@ Background worker for processing batch jobs.
 """
 
 import asyncio
-import logging
 from datetime import datetime
-from src.core import get_logger, settings
+from src.core import get_logger
 from src.api.schemas import JobStatusEnum
 
 logger = get_logger(__name__)

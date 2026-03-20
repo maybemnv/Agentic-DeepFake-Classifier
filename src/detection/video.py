@@ -28,7 +28,7 @@ class VideoProcessor:
         self,
         sample_rate: float = 1.0,
         max_frames: Optional[int] = None,
-        supported_formats: tuple = ('.mp4', '.avi', '.mov', '.mkv', '.webm'),
+        supported_formats: tuple = (".mp4", ".avi", ".mov", ".mkv", ".webm"),
     ):
         """
         Initialize the video processor.
@@ -41,7 +41,7 @@ class VideoProcessor:
         self.sample_rate = sample_rate
         self.max_frames = max_frames
         self.supported_formats = supported_formats
-    
+
     def validate(self, video_path: str) -> None:
         """
         Validate that video file exists and is in supported format.
@@ -72,27 +72,27 @@ class VideoProcessor:
 
         if not ret:
             raise VideoCorruptedError("Video file appears to be empty or corrupted")
-    
+
     def get_metadata(self, video_path: str) -> VideoMetadata:
         """
         Extract metadata from video file.
-        
+
         Args:
             video_path: Path to the video file
-            
+
         Returns:
             VideoMetadata object
         """
         cap = cv2.VideoCapture(video_path)
-        
+
         fps = cap.get(cv2.CAP_PROP_FPS)
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         duration = total_frames / fps if fps > 0 else 0
-        
+
         cap.release()
-        
+
         return VideoMetadata(
             path=video_path,
             fps=fps,
@@ -100,14 +100,12 @@ class VideoProcessor:
             duration_seconds=duration,
             width=width,
             height=height,
-            format=os.path.splitext(video_path)[1].lower()
+            format=os.path.splitext(video_path)[1].lower(),
         )
 
     def extract_frames(
-        self,
-        video_path: str,
-        max_frames: Optional[int] = None
-    ) -> Generator[Tuple[int, 'cv2.Mat'], None, None]:
+        self, video_path: str, max_frames: Optional[int] = None
+    ) -> Generator[Tuple[int, "cv2.Mat"], None, None]:
         """
         Extract frames from video at the configured sample rate.
 
@@ -130,28 +128,26 @@ class VideoProcessor:
         extracted_count = 0
 
         logger.info(f"Extracting frames at {self.sample_rate} fps")
-        
+
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret:
                 break
-            
+
             if frame_count % frame_interval == 0:
                 yield frame_count, frame
                 extracted_count += 1
-                
+
                 if max_to_extract and extracted_count >= max_to_extract:
                     break
-            
+
             frame_count += 1
-        
+
         cap.release()
         logger.info(f"Extracted {extracted_count} frames")
-    
+
     def extract_frames_list(
-        self, 
-        video_path: str, 
-        max_frames: Optional[int] = None
-    ) -> List[Tuple[int, 'cv2.Mat']]:
+        self, video_path: str, max_frames: Optional[int] = None
+    ) -> List[Tuple[int, "cv2.Mat"]]:
         """Extract frames as a list."""
         return list(self.extract_frames(video_path, max_frames))

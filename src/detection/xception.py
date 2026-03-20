@@ -2,16 +2,27 @@
 Xception architecture implementation in PyTorch.
 Ported from https://github.com/tstandley/Xception-PyTorch/blob/master/xception.py
 """
-import math
-import torch
+
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class SeparableConv2d(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=1, stride=1, padding=0, dilation=1, bias=False):
+    def __init__(
+        self, in_channels, out_channels, kernel_size=1, stride=1, padding=0, dilation=1, bias=False
+    ):
         super(SeparableConv2d, self).__init__()
 
-        self.conv1 = nn.Conv2d(in_channels, in_channels, kernel_size, stride, padding, dilation, groups=in_channels, bias=bias)
+        self.conv1 = nn.Conv2d(
+            in_channels,
+            in_channels,
+            kernel_size,
+            stride,
+            padding,
+            dilation,
+            groups=in_channels,
+            bias=bias,
+        )
         self.pointwise = nn.Conv2d(in_channels, out_channels, 1, 1, 0, 1, 1, bias=bias)
 
     def forward(self, x):
@@ -19,8 +30,11 @@ class SeparableConv2d(nn.Module):
         x = self.pointwise(x)
         return x
 
+
 class Block(nn.Module):
-    def __init__(self, in_filters, out_filters, reps, strides=1, start_with_relu=True, grow_first=True):
+    def __init__(
+        self, in_filters, out_filters, reps, strides=1, start_with_relu=True, grow_first=True
+    ):
         super(Block, self).__init__()
 
         if out_filters != in_filters or strides != 1:
@@ -71,11 +85,13 @@ class Block(nn.Module):
         x += skip
         return x
 
+
 class Xception(nn.Module):
     """
     Xception optimized for the ImageNet dataset, as specified in
     https://arxiv.org/pdf/1610.02357.pdf
     """
+
     def __init__(self, num_classes=1000):
         super(Xception, self).__init__()
         self.num_classes = num_classes
@@ -159,37 +175,40 @@ class Xception(nn.Module):
 
         return x
 
-def xception(num_classes=1000, pretrained='imagenet'):
+
+def xception(num_classes=1000, pretrained="imagenet"):
     """
     Construct Xception.
     """
     model = Xception(num_classes=num_classes)
     if pretrained:
-        settings = pretrained_settings['xception'][pretrained]
-        assert num_classes == settings['num_classes'], \
-            "num_classes should be {}, but is {}".format(settings['num_classes'], num_classes)
+        settings = pretrained_settings["xception"][pretrained]
+        assert num_classes == settings["num_classes"], "num_classes should be {}, but is {}".format(
+            settings["num_classes"], num_classes
+        )
 
-        model.load_state_dict(model_zoo.load_url(settings['url']))
-        
-        model.input_space = settings['input_space']
-        model.input_size = settings['input_size']
-        model.input_range = settings['input_range']
-        model.mean = settings['mean']
-        model.std = settings['std']
+        model.load_state_dict(model_zoo.load_url(settings["url"]))
+
+        model.input_space = settings["input_space"]
+        model.input_size = settings["input_size"]
+        model.input_range = settings["input_range"]
+        model.mean = settings["mean"]
+        model.std = settings["std"]
 
     # TODO: implement pretrained loading if needed, but for now we load local weights.
     return model
 
+
 pretrained_settings = {
-    'xception': {
-        'imagenet': {
-            'url': 'http://data.lip6.fr/cadene/pretrainedmodels/xception-43020ad28.pth',
-            'input_space': 'RGB',
-            'input_size': [3, 299, 299],
-            'input_range': [0, 1],
-            'mean': [0.5, 0.5, 0.5],
-            'std': [0.5, 0.5, 0.5],
-            'num_classes': 1000
+    "xception": {
+        "imagenet": {
+            "url": "http://data.lip6.fr/cadene/pretrainedmodels/xception-43020ad28.pth",
+            "input_space": "RGB",
+            "input_size": [3, 299, 299],
+            "input_range": [0, 1],
+            "mean": [0.5, 0.5, 0.5],
+            "std": [0.5, 0.5, 0.5],
+            "num_classes": 1000,
         }
     }
 }
