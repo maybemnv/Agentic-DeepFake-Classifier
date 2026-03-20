@@ -13,13 +13,9 @@ from typing import List, Optional, Dict, Any
 from torchvision import transforms
 import logging
 
-from ..core import (
-    ClassificationResult,
-    ClassifierConfig,
-    CLASSIFIER_CONFIG,
-    PROJECT_ROOT
-)
+from ..core import ClassificationResult
 from ..core.exceptions import ModelLoadError
+from ..core.config import settings
 from .network import model_selection
 
 logger = logging.getLogger(__name__)
@@ -40,7 +36,6 @@ class DeepfakeClassifier:
         self,
         weights_path: Optional[str] = None,
         use_cuda: bool = False,
-        config: ClassifierConfig = None,
     ):
         """
         Initialize the PyTorch Deepfake Classifier.
@@ -48,9 +43,7 @@ class DeepfakeClassifier:
         Args:
             weights_path: Path to the .pth weights file. If None, uses default project path.
             use_cuda: Whether to use CUDA if available.
-            config: Classifier configuration.
         """
-        self.config = config or CLASSIFIER_CONFIG
         self.use_cuda = use_cuda and torch.cuda.is_available()
         self.device = torch.device("cuda" if self.use_cuda else "cpu")
 
@@ -58,17 +51,20 @@ class DeepfakeClassifier:
         # Resize to 299x299, Normalize mean=[0.5,0.5,0.5], std=[0.5,0.5,0.5]
         self.transform = transforms.Compose(
             [
-                transforms.Resize(self.config.input_size),
+                transforms.Resize(settings.input_size),
                 transforms.ToTensor(),
                 transforms.Normalize(
-                    list(self.config.normalize_mean), list(self.config.normalize_std)
+                    [settings.input_size] * 3, [0.5, 0.5, 0.5]
                 ),
             ]
         )
 
         # Resolve weights path
         if not weights_path:
-            self.weights_path = os.path.join(PROJECT_ROOT, self.MODEL_RELATIVE_PATH)
+            from pathlib import Path
+            self.weights_path = Path(settings.model_path)
+            if not self.weights_path.is_absolute():
+                self.weights_path = Path.cwd() / self.weights_path
         else:
             self.weights_path = weights_path
 

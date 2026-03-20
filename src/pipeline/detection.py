@@ -8,8 +8,9 @@ from typing import Optional
 from tqdm import tqdm
 import logging
 
-from ..core import VideoAnalysis, FrameAnalysis, VideoConfig, VIDEO_CONFIG
+from ..core import VideoAnalysis, FrameAnalysis
 from ..detection import VideoProcessor, FaceDetector, DeepfakeClassifier
+from ..core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -35,11 +36,12 @@ class DetectionPipeline:
             max_frames: Maximum frames to analyze
         """
         self.max_frames = max_frames
-
-        video_config = VideoConfig(sample_rate=sample_rate, max_frames=max_frames)
+        self.sample_rate = sample_rate
 
         logger.info("Initializing detection pipeline...")
-        self.video_processor = VideoProcessor(config=video_config)
+        self.video_processor = VideoProcessor(
+            sample_rate=sample_rate, max_frames=max_frames
+        )
         self.face_detector = FaceDetector()
         self.classifier = classifier
         logger.info("Detection pipeline ready!")

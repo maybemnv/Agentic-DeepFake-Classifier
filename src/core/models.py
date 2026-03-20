@@ -3,7 +3,7 @@ Core Models Module
 All Pydantic models and type definitions for the project.
 """
 
-from pydantic import BaseModel, Field, field_validator, computed_field
+from pydantic import BaseModel, Field, field_validator, computed_field, ConfigDict
 from enum import Enum
 from typing import Optional
 from datetime import datetime
@@ -68,12 +68,11 @@ class VideoMetadata(BaseModel):
 class FaceResult(BaseModel):
     """Result of face detection for a single face."""
 
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     bbox: tuple[int, int, int, int]  # (x, y, width, height)
     cropped_face: np.ndarray
     confidence: float = Field(default=1.0, ge=0.0, le=1.0)
-
-    class Config:
-        arbitrary_types_allowed = True
 
 
 # =============================================================================
@@ -117,12 +116,11 @@ class FrameAnalysis(BaseModel):
 class VideoAnalysis(BaseModel):
     """Complete analysis result for a video."""
 
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     video_path: str
     metadata: VideoMetadata
     frame_analyses: list[FrameAnalysis] = Field(default_factory=list)
-
-    class Config:
-        arbitrary_types_allowed = True
 
     @computed_field
     @property
@@ -203,6 +201,14 @@ class CognitiveResponse(BaseModel):
 class AnalysisResult(BaseModel):
     """Complete analysis result from the agentic analyzer."""
 
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+        json_schema_serializers={
+            Verdict: lambda v: v.value,
+            datetime: lambda dt: dt.isoformat(),
+        }
+    )
+
     video_path: str
     duration_seconds: float
     verdict: Verdict
@@ -218,13 +224,6 @@ class AnalysisResult(BaseModel):
     short_summary: str
     video_analysis: Optional[VideoAnalysis] = None
     timestamp: datetime = Field(default_factory=datetime.utcnow)
-
-    class Config:
-        arbitrary_types_allowed = True
-        json_encoders = {
-            Verdict: lambda v: v.value,
-            datetime: lambda dt: dt.isoformat(),
-        }
 
     def __str__(self) -> str:
         from pathlib import Path

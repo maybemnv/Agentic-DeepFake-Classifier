@@ -6,7 +6,8 @@ Autonomous decision-making for deepfake detection verdicts.
 from typing import List
 import logging
 
-from ..core import Verdict, DecisionResult, DecisionConfig, DECISION_CONFIG
+from ..core import Verdict, DecisionResult
+from ..core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -15,16 +16,25 @@ class DecisionAgent:
     """
     Autonomous agent for making deepfake detection decisions.
     """
-    
-    def __init__(self, config: DecisionConfig = None):
+
+    def __init__(
+        self,
+        fake_threshold: float | None = None,
+        suspicious_threshold: float | None = None,
+        min_faces_for_decision: int | None = None,
+    ):
         """
         Initialize the decision agent.
-        
+
         Args:
-            config: Decision configuration
+            fake_threshold: Threshold for FAKE verdict
+            suspicious_threshold: Threshold for SUSPICIOUS verdict
+            min_faces_for_decision: Minimum faces for confident decision
         """
-        self.config = config or DECISION_CONFIG
-        logger.info(f"Decision Agent initialized: FAKE>={self.config.fake_threshold}")
+        self.fake_threshold = fake_threshold or settings.fake_threshold
+        self.suspicious_threshold = suspicious_threshold or settings.suspicious_threshold
+        self.min_faces_for_decision = min_faces_for_decision or settings.min_faces_for_decision
+        logger.info(f"Decision Agent initialized: FAKE>={self.fake_threshold}")
     
     def _calculate_variance(self, scores: List[float]) -> float:
         """Calculate variance of scores for consistency check."""
@@ -32,35 +42,35 @@ class DecisionAgent:
             return 0.0
         mean = sum(scores) / len(scores)
         return sum((s - mean) ** 2 for s in scores) / len(scores)
-    
+
     def _determine_verdict(
-        self, 
-        avg_score: float, 
+        self,
+        avg_score: float,
         variance: float,
         num_faces: int
     ) -> Verdict:
         """Determine verdict based on score and variance."""
-        if num_faces < self.config.min_faces_for_decision:
+        if num_faces < self.min_faces_for_decision:
             if num_faces == 0:
                 return Verdict.INCONCLUSIVE
             logger.warning(f"Low face count ({num_faces})")
-        
-        if avg_score >= self.config.fake_threshold:
+
+        if avg_score >= self.fake_threshold:
             return Verdict.FAKE
-        elif avg_score >= self.config.suspicious_threshold:
+        elif avg_score >= self.suspicious_threshold:
             return Verdict.SUSPICIOUS
         else:
             return Verdict.REAL
-    
+
     def _calculate_confidence(
-        self, 
-        avg_score: float, 
+        self,
+        avg_score: float,
         variance: float,
         num_faces: int
     ) -> float:
         """Calculate confidence score for the decision."""
         base_confidence = avg_score if avg_score >= 0.5 else (1.0 - avg_score)
-        sample_factor = min(1.0, num_faces / self.config.min_faces_for_decision)
+        sample_factor = min(1.0, num_faces / self.min_faces_for_decision)
         variance_penalty = max(0.0, 1.0 - variance * 5)
         confidence = base_confidence * sample_factor * variance_penalty
         return max(0.0, min(1.0, confidence))

@@ -8,7 +8,7 @@ import os
 from typing import Generator, Optional, Tuple, List
 import logging
 
-from ..core import VideoMetadata, VideoConfig, VIDEO_CONFIG
+from ..core import VideoMetadata
 from ..core.exceptions import VideoNotFoundError, VideoFormatError, VideoCorruptedError
 
 logger = logging.getLogger(__name__)
@@ -17,29 +17,38 @@ logger = logging.getLogger(__name__)
 class VideoProcessor:
     """
     Processes video files for deepfake detection.
-    
+
     Responsibilities:
     - Load video from filesystem
     - Validate format and integrity
     - Extract frames at configurable intervals
     """
-    
-    def __init__(self, config: VideoConfig = None):
+
+    def __init__(
+        self,
+        sample_rate: float = 1.0,
+        max_frames: Optional[int] = None,
+        supported_formats: tuple = ('.mp4', '.avi', '.mov', '.mkv', '.webm'),
+    ):
         """
         Initialize the video processor.
-        
+
         Args:
-            config: Video processing configuration
+            sample_rate: Frame sampling rate (fps)
+            max_frames: Maximum frames to extract
+            supported_formats: Supported video formats
         """
-        self.config = config or VIDEO_CONFIG
+        self.sample_rate = sample_rate
+        self.max_frames = max_frames
+        self.supported_formats = supported_formats
     
     def validate(self, video_path: str) -> None:
         """
         Validate that video file exists and is in supported format.
-        
+
         Args:
             video_path: Path to the video file
-            
+
         Raises:
             VideoNotFoundError: If file doesn't exist
             VideoFormatError: If format not supported
@@ -47,20 +56,20 @@ class VideoProcessor:
         """
         if not os.path.exists(video_path):
             raise VideoNotFoundError(f"Video file not found: {video_path}")
-        
+
         ext = os.path.splitext(video_path)[1].lower()
-        if ext not in self.config.supported_formats:
+        if ext not in self.supported_formats:
             raise VideoFormatError(
-                f"Unsupported format: {ext}. Supported: {self.config.supported_formats}"
+                f"Unsupported format: {ext}. Supported: {self.supported_formats}"
             )
-        
+
         cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
             raise VideoCorruptedError("Failed to open video file")
-        
+
         ret, _ = cap.read()
         cap.release()
-        
+
         if not ret:
             raise VideoCorruptedError("Video file appears to be empty or corrupted")
     
@@ -93,34 +102,34 @@ class VideoProcessor:
             height=height,
             format=os.path.splitext(video_path)[1].lower()
         )
-    
+
     def extract_frames(
-        self, 
-        video_path: str, 
+        self,
+        video_path: str,
         max_frames: Optional[int] = None
     ) -> Generator[Tuple[int, 'cv2.Mat'], None, None]:
         """
         Extract frames from video at the configured sample rate.
-        
+
         Args:
             video_path: Path to the video file
             max_frames: Maximum number of frames to extract
-            
+
         Yields:
             Tuple of (frame_index, frame_image)
         """
         cap = cv2.VideoCapture(video_path)
         fps = cap.get(cv2.CAP_PROP_FPS)
-        
-        frame_interval = int(fps / self.config.sample_rate) if fps > 0 else 1
+
+        frame_interval = int(fps / self.sample_rate) if fps > 0 else 1
         frame_interval = max(1, frame_interval)
-        
-        max_to_extract = max_frames or self.config.max_frames
-        
+
+        max_to_extract = max_frames or self.max_frames
+
         frame_count = 0
         extracted_count = 0
-        
-        logger.info(f"Extracting frames at {self.config.sample_rate} fps")
+
+        logger.info(f"Extracting frames at {self.sample_rate} fps")
         
         while cap.isOpened():
             ret, frame = cap.read()
