@@ -66,8 +66,14 @@ class Settings(BaseSettings):
     # =============================================================================
     # Model Settings
     # =============================================================================
+    inference_backend: Literal["pytorch", "onnx"] = Field(
+        default="onnx", description="Backend used for inference"
+    )
     model_path: str = Field(
-        default="model/ffpp_c23.pth", description="Path to model weights"
+        default="model/ffpp_c23.pth", description="Path to PyTorch model weights"
+    )
+    onnx_model_path: str = Field(
+        default="model/ffpp_c23.onnx", description="Path to ONNX model weights"
     )
     use_cuda: bool = Field(default=True, description="Use CUDA for inference")
     batch_size: int = Field(default=32, ge=1, description="Batch size for inference")

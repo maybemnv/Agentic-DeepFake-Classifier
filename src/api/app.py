@@ -47,12 +47,22 @@ async def lifespan(app: FastAPI):
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
     # Load model
-    from src.detection import DeepfakeClassifier
-    import torch
+    if settings.inference_backend == "onnx":
+        from src.detection.onnx_classifier import ONNXClassifier
+        
+        use_cuda = settings.use_cuda
+        logger.info(f"Loading ONNX model from {settings.onnx_model_path} with CUDA={use_cuda}")
+        app.state.classifier = ONNXClassifier(
+            onnx_model_path=settings.onnx_model_path,
+            use_cuda=use_cuda,
+        )
+    else:
+        from src.detection import DeepfakeClassifier
+        import torch
 
-    use_cuda = settings.use_cuda and torch.cuda.is_available()
-    logger.info(f"Loading model with CUDA={use_cuda}")
-    app.state.classifier = DeepfakeClassifier(use_cuda=use_cuda)
+        use_cuda = settings.use_cuda and torch.cuda.is_available()
+        logger.info(f"Loading PyTorch model with CUDA={use_cuda}")
+        app.state.classifier = DeepfakeClassifier(use_cuda=use_cuda)
 
     logger.info("Model loaded successfully")
 

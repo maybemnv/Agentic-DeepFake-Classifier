@@ -231,6 +231,7 @@ def _show_result(result: dict[str, Any], title: str = "Analysis Result") -> None
         data=json.dumps(result, indent=2, default=str),
         file_name=f"report_{int(time.time())}.json",
         mime="application/json",
+        key=f"download_{title}",
     )
 
 
@@ -282,7 +283,7 @@ def sidebar_settings() -> tuple[dict[str, Any], bool, str]:
         st.markdown("#### Parameters")
         params = {
             "sample_rate": st.slider("Sampling Rate (FPS)", 0.5, 5.0, 1.0, 0.5),
-            "max_frames": st.number_input("Max Frames (0 = unlimited)", 0, 500, 0),
+            "max_frames": st.number_input("Max Frames (0 = unlimited)", 0, 500, 30),
             "fake_threshold": st.slider("Fake Threshold", 0.50, 0.99, 0.70),
             "suspicious_threshold": st.slider("Suspicious Threshold", 0.10, 0.60, 0.40),
         }
