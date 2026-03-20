@@ -113,11 +113,16 @@ class ONNXClassifier:
         Classify input as real or fake.
 
         Args:
-            input_tensor: Input tensor [1, 3, 299, 299]
+            input_tensor: Input tensor [height, width, channels] or [1, 3, 299, 299]
 
         Returns:
             ClassificationResult
         """
+        # Preprocess if needed
+        if input_tensor.shape == (299, 299, 3):
+            # Convert from HWC to NCHW format and normalize
+            input_tensor = self._preprocess_image(input_tensor)
+        
         result = self.predict(input_tensor)
 
         prediction = "FAKE" if result["fake"] > result["real"] else "REAL"
@@ -161,6 +166,28 @@ class ONNXClassifier:
             )
 
         return results
+
+    def _preprocess_image(self, image: np.ndarray) -> np.ndarray:
+        """
+        Preprocess image from HWC [299, 299, 3] to NCHW [1, 3, 299, 299] format.
+        
+        Args:
+            image: Input image array [299, 299, 3] with values 0-255
+            
+        Returns:
+            Preprocessed tensor [1, 3, 299, 299] normalized to [-1, 1]
+        """
+        # Convert from HWC to CHW format
+        image = image.transpose(2, 0, 1)  # [3, 299, 299]
+        
+        # Add batch dimension
+        image = np.expand_dims(image, axis=0)  # [1, 3, 299, 299]
+        
+        # Normalize to [-1, 1] (same as PyTorch Normalize([0.5,0.5,0.5], [0.5,0.5,0.5]))
+        image = image.astype(np.float32) / 255.0
+        image = (image - 0.5) / 0.5
+        
+        return image
 
     @staticmethod
     def _softmax(x: np.ndarray) -> np.ndarray:
