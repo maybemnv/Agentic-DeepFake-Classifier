@@ -29,10 +29,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 security = HTTPBearer(auto_error=False)
 
-# In-memory user store (replace with database in production)
 users_db: dict[str, User] = {}
 api_keys_db: dict[str, APIKey] = {}
-
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Security(security),
@@ -69,7 +67,6 @@ async def get_user_by_api_key(api_key: str) -> User | None:
     if api_key_obj is None or not api_key_obj.is_active:
         return None
 
-    # Check expiration
     if api_key_obj.expires_at and datetime.utcnow() > api_key_obj.expires_at:
         return None
 
@@ -85,7 +82,6 @@ async def register(user_data: UserCreate):
     - **email**: Optional email address
     - **password**: Password (will be hashed)
     """
-    # Check if user exists
     for user in users_db.values():
         if user.username == user_data.username:
             raise HTTPException(
@@ -93,7 +89,6 @@ async def register(user_data: UserCreate):
                 detail="Username already taken",
             )
 
-    # Create user
     user_id = str(uuid.uuid4())
     user = User(
         id=user_id,
@@ -106,7 +101,6 @@ async def register(user_data: UserCreate):
     users_db[user_id] = user
     logger.info(f"User registered: {user.username}")
 
-    # Generate tokens
     token_data = {"sub": user.username, "user_id": user_id, "tier": user.tier}
     access_token = create_access_token(token_data)
     refresh_token = create_refresh_token(token_data)
@@ -121,7 +115,6 @@ async def login(username: str = Form(...), password: str = Form(...)):
 
     Returns access and refresh tokens.
     """
-    # Find user
     user = None
     for u in users_db.values():
         if u.username == username:
@@ -142,7 +135,6 @@ async def login(username: str = Form(...), password: str = Form(...)):
 
     logger.info(f"User logged in: {user.username}")
 
-    # Generate tokens
     token_data = {"sub": user.username, "user_id": user.id, "tier": user.tier}
     access_token = create_access_token(token_data)
     refresh_token = create_refresh_token(token_data)
@@ -168,7 +160,6 @@ async def refresh_token(refresh_token: str = Form(...)):
             detail="User not found or inactive",
         )
 
-    # Generate new tokens
     new_token_data = {"sub": user.username, "user_id": user.id, "tier": user.tier}
     new_access_token = create_access_token(new_token_data)
     new_refresh_token = create_refresh_token(new_token_data)

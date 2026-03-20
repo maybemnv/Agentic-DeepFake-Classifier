@@ -16,10 +16,7 @@ class TransferModel(nn.Module):
         self.model_choice = model_choice
 
         if model_choice == "xception":
-            self.model = xception(
-                num_classes=1000, pretrained=None
-            )  # We load our own weights
-            # Replace the last layer
+            self.model = xception(num_classes=1000, pretrained=None)
             num_ftrs = self.model.fc.in_features
             if not dropout:
                 self.model.fc = nn.Linear(num_ftrs, num_out_classes)

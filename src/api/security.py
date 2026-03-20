@@ -13,13 +13,6 @@ import logging
 from ..core.config import settings
 
 logger = logging.getLogger(__name__)
-
-
-# =============================================================================
-# Token Models
-# =============================================================================
-
-
 class Token(BaseModel):
     """JWT token response."""
 
@@ -47,9 +40,7 @@ class APIKey(BaseModel):
     is_active: bool = True
 
 
-# =============================================================================
-# User Models
-# =============================================================================
+
 
 
 class UserBase(BaseModel):
@@ -75,9 +66,7 @@ class User(UserBase):
     is_active: bool = True
 
 
-# =============================================================================
-# Authentication Functions
-# =============================================================================
+
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
