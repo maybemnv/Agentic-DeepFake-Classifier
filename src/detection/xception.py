@@ -147,6 +147,9 @@ class Xception(nn.Module):
         self.conv3 = SeparableConv2d(1024, 1536, 3, 1, 1)
         self.bn3 = nn.BatchNorm2d(1536)
 
+        self.conv4 = SeparableConv2d(1536, 2048, 3, 1, 1)
+        self.bn4 = nn.BatchNorm2d(2048)
+
         self.fc = nn.Linear(2048, num_classes)
 
     def forward(self, x):
