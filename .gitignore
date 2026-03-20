@@ -8,4 +8,36 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Environment variables
+.env
+
+# Data
 data/
+
+# Uploads
+uploads/
+*.mp4
+!videoplayback.mp4
+
+# Cache
+.cache/
+*.cache
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

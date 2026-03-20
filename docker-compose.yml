@@ -1,0 +1,140 @@
+version: '3.8'
+
+services:
+  # =============================================================================
+  # API Service
+  # =============================================================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: deepfake-api
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=production
+      - LOG_LEVEL=INFO
+      - LOG_FORMAT=json
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DATABASE_URL=postgresql://deepfake:deepfake_password@postgres:5432/deepfake_db
+      - USE_CUDA=false
+    volumes:
+      - ./uploads:/app/uploads
+      - ./model:/app/model
+      - .cache:/app/.cache
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - deepfake-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # =============================================================================
+  # Frontend Service
+  # =============================================================================
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: deepfake-frontend
+    ports:
+      - "8501:8501"
+    environment:
+      - API_BASE_URL=http://api:8000
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - deepfake-network
+    command: ["ui"]
+
+  # =============================================================================
+  # Redis (Caching & Rate Limiting)
+  # =============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: deepfake-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - deepfake-network
+
+  # =============================================================================
+  # PostgreSQL (Database)
+  # =============================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: deepfake-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=deepfake
+      - POSTGRES_PASSWORD=deepfake_password
+      - POSTGRES_DB=deepfake_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U deepfake"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - deepfake-network
+
+  # =============================================================================
+  # Worker Service (Background Jobs)
+  # =============================================================================
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: deepfake-worker
+    environment:
+      - APP_ENV=production
+      - REDIS_HOST=redis
+      - DATABASE_URL=postgresql://deepfake:deepfake_password@postgres:5432/deepfake_db
+      - USE_CUDA=false
+    volumes:
+      - ./uploads:/app/uploads
+      - ./model:/app/model
+    depends_on:
+      - redis
+      - postgres
+    restart: unless-stopped
+    networks:
+      - deepfake-network
+    command: ["worker"]
+
+networks:
+  deepfake-network:
+    driver: bridge
+
+volumes:
+  redis_data:
+  postgres_data:
+  model_cache:

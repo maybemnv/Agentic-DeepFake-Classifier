@@ -1,6 +1,6 @@
 """
 Core Module
-Contains models, configuration, and exceptions.
+Contains models, configuration, exceptions, and logging.
 """
 
 from .models import (
@@ -12,20 +12,17 @@ from .models import (
     VideoAnalysis,
     DecisionResult,
     CognitiveResponse,
-    AnalysisResult
+    AnalysisResult,
+    VideoQualityMetrics,
+    BatchJobStatus,
+    BatchJobInfo,
+    ComparativeAnalysisResult,
 )
 
 from .config import (
-    PROJECT_ROOT,
-    MODEL_DIR,
-    VideoConfig,
-    FaceDetectionConfig,
-    ClassifierConfig,
-    DecisionConfig,
-    VIDEO_CONFIG,
-    FACE_CONFIG,
-    CLASSIFIER_CONFIG,
-    DECISION_CONFIG
+    Settings,
+    settings,
+    get_settings,
 )
 
 from .exceptions import (
@@ -38,40 +35,42 @@ from .exceptions import (
     NoFacesDetectedError,
     ClassifierError,
     ModelNotFoundError,
-    ModelLoadError
+    ModelLoadError,
 )
+
+from .logging_config import setup_logging, get_logger
 
 __all__ = [
     # Models
-    'Verdict',
-    'VideoMetadata',
-    'FaceResult',
-    'ClassificationResult',
-    'FrameAnalysis',
-    'VideoAnalysis',
-    'DecisionResult',
-    'CognitiveResponse',
-    'AnalysisResult',
+    "Verdict",
+    "VideoMetadata",
+    "FaceResult",
+    "ClassificationResult",
+    "FrameAnalysis",
+    "VideoAnalysis",
+    "DecisionResult",
+    "CognitiveResponse",
+    "AnalysisResult",
+    "VideoQualityMetrics",
+    "BatchJobStatus",
+    "BatchJobInfo",
+    "ComparativeAnalysisResult",
     # Config
-    'PROJECT_ROOT',
-    'MODEL_DIR',
-    'VideoConfig',
-    'FaceDetectionConfig',
-    'ClassifierConfig',
-    'DecisionConfig',
-    'VIDEO_CONFIG',
-    'FACE_CONFIG',
-    'CLASSIFIER_CONFIG',
-    'DECISION_CONFIG',
+    "Settings",
+    "settings",
+    "get_settings",
     # Exceptions
-    'DeepfakeDetectorError',
-    'VideoError',
-    'VideoNotFoundError',
-    'VideoFormatError',
-    'VideoCorruptedError',
-    'FaceDetectionError',
-    'NoFacesDetectedError',
-    'ClassifierError',
-    'ModelNotFoundError',
-    'ModelLoadError',
+    "DeepfakeDetectorError",
+    "VideoError",
+    "VideoNotFoundError",
+    "VideoFormatError",
+    "VideoCorruptedError",
+    "FaceDetectionError",
+    "NoFacesDetectedError",
+    "ClassifierError",
+    "ModelNotFoundError",
+    "ModelLoadError",
+    # Logging
+    "setup_logging",
+    "get_logger",
 ]
