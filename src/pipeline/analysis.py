@@ -52,13 +52,10 @@ class DeepfakeAnalyzer:
             classifier=classifier, sample_rate=sample_rate, max_frames=max_frames
         )
 
-        from ..core import DecisionConfig
-
-        decision_config = DecisionConfig(
-            fake_threshold=fake_threshold, suspicious_threshold=suspicious_threshold
+        self.decision_agent = DecisionAgent(
+            fake_threshold=fake_threshold,
+            suspicious_threshold=suspicious_threshold,
         )
-
-        self.decision_agent = DecisionAgent(config=decision_config)
         self.cognitive_agent = CognitiveAgent()
 
         logger.info("Agentic Deepfake Analyzer ready!")
