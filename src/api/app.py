@@ -19,7 +19,10 @@ logger = get_logger(__name__)
 # Rate limiter
 def rate_limit_handler() -> dict:
     """Custom rate limit exceeded handler."""
-    return {"error": "Rate limit exceeded", "detail": "Too many requests. Please try again later."}
+    return {
+        "error": "Rate limit exceeded",
+        "detail": "Too many requests. Please try again later.",
+    }
 
 
 @asynccontextmanager
@@ -27,7 +30,10 @@ async def lifespan(app: FastAPI):
     """Application lifespan events."""
     # Startup
     setup_logging()
-    logger.info("Starting Agentic DeepFake Classifier API", extra={"version": settings.app_version})
+    logger.info(
+        "Starting Agentic DeepFake Classifier API",
+        extra={"version": settings.app_version},
+    )
 
     # Initialize rate limiter
     app.state.limiter = Limiter(

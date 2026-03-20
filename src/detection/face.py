@@ -57,7 +57,9 @@ class FaceDetector:
 
         return new_x1, new_y1, size, size
 
-    def detect_faces(self, image: np.ndarray, max_faces: Optional[int] = None) -> List[FaceResult]:
+    def detect_faces(
+        self, image: np.ndarray, max_faces: Optional[int] = None
+    ) -> List[FaceResult]:
         """
         Detect all faces in an image.
 
@@ -90,7 +92,9 @@ class FaceDetector:
             cropped_resized = cv2.resize(cropped, self.target_size)
 
             results.append(
-                FaceResult(bbox=(x, y, w, h), cropped_face=cropped_resized, confidence=1.0)
+                FaceResult(
+                    bbox=(x, y, w, h), cropped_face=cropped_resized, confidence=1.0
+                )
             )
 
             if max_faces and len(results) >= max_faces:

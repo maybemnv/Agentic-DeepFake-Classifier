@@ -38,12 +38,16 @@ class DetectionPipeline:
         self.sample_rate = sample_rate
 
         logger.info("Initializing detection pipeline...")
-        self.video_processor = VideoProcessor(sample_rate=sample_rate, max_frames=max_frames)
+        self.video_processor = VideoProcessor(
+            sample_rate=sample_rate, max_frames=max_frames
+        )
         self.face_detector = FaceDetector()
         self.classifier = classifier
         logger.info("Detection pipeline ready!")
 
-    def analyze_video(self, video_path: str, show_progress: bool = True) -> VideoAnalysis:
+    def analyze_video(
+        self, video_path: str, show_progress: bool = True
+    ) -> VideoAnalysis:
         """
         Analyze a video for deepfakes.
 

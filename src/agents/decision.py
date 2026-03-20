@@ -32,8 +32,12 @@ class DecisionAgent:
             min_faces_for_decision: Minimum faces for confident decision
         """
         self.fake_threshold = fake_threshold or settings.fake_threshold
-        self.suspicious_threshold = suspicious_threshold or settings.suspicious_threshold
-        self.min_faces_for_decision = min_faces_for_decision or settings.min_faces_for_decision
+        self.suspicious_threshold = (
+            suspicious_threshold or settings.suspicious_threshold
+        )
+        self.min_faces_for_decision = (
+            min_faces_for_decision or settings.min_faces_for_decision
+        )
         logger.info(f"Decision Agent initialized: FAKE>={self.fake_threshold}")
 
     def _calculate_variance(self, scores: List[float]) -> float:
@@ -43,7 +47,9 @@ class DecisionAgent:
         mean = sum(scores) / len(scores)
         return sum((s - mean) ** 2 for s in scores) / len(scores)
 
-    def _determine_verdict(self, avg_score: float, variance: float, num_faces: int) -> Verdict:
+    def _determine_verdict(
+        self, avg_score: float, variance: float, num_faces: int
+    ) -> Verdict:
         """Determine verdict based on score and variance."""
         if num_faces < self.min_faces_for_decision:
             if num_faces == 0:
@@ -57,7 +63,9 @@ class DecisionAgent:
         else:
             return Verdict.REAL
 
-    def _calculate_confidence(self, avg_score: float, variance: float, num_faces: int) -> float:
+    def _calculate_confidence(
+        self, avg_score: float, variance: float, num_faces: int
+    ) -> float:
         """Calculate confidence score for the decision."""
         base_confidence = avg_score if avg_score >= 0.5 else (1.0 - avg_score)
         sample_factor = min(1.0, num_faces / self.min_faces_for_decision)

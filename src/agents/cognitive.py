@@ -75,7 +75,9 @@ class CognitiveAgent:
         """
         level = self._get_confidence_level(decision.confidence)
         templates = self.VERDICT_TEMPLATES.get(decision.verdict, {})
-        verdict_text = templates.get(level, templates.get("default", "Analysis complete."))
+        verdict_text = templates.get(
+            level, templates.get("default", "Analysis complete.")
+        )
 
         # Technical summary
         if decision.verdict == Verdict.FAKE:
@@ -89,7 +91,9 @@ class CognitiveAgent:
                 f"Authenticity probability: {1 - decision.average_fake_score:.1%}."
             )
         else:
-            technical = f"Analyzed {decision.frames_with_faces} frames with mixed results."
+            technical = (
+                f"Analyzed {decision.frames_with_faces} frames with mixed results."
+            )
 
         explanation = (
             f"{verdict_text}\n\n"

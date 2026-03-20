@@ -9,7 +9,14 @@ import torch.nn.functional as F
 
 class SeparableConv2d(nn.Module):
     def __init__(
-        self, in_channels, out_channels, kernel_size=1, stride=1, padding=0, dilation=1, bias=False
+        self,
+        in_channels,
+        out_channels,
+        kernel_size=1,
+        stride=1,
+        padding=0,
+        dilation=1,
+        bias=False,
     ):
         super(SeparableConv2d, self).__init__()
 
@@ -33,12 +40,20 @@ class SeparableConv2d(nn.Module):
 
 class Block(nn.Module):
     def __init__(
-        self, in_filters, out_filters, reps, strides=1, start_with_relu=True, grow_first=True
+        self,
+        in_filters,
+        out_filters,
+        reps,
+        strides=1,
+        start_with_relu=True,
+        grow_first=True,
     ):
         super(Block, self).__init__()
 
         if out_filters != in_filters or strides != 1:
-            self.skip = nn.Conv2d(in_filters, out_filters, 1, stride=strides, bias=False)
+            self.skip = nn.Conv2d(
+                in_filters, out_filters, 1, stride=strides, bias=False
+            )
             self.skipbn = nn.BatchNorm2d(out_filters)
         else:
             self.skip = None
@@ -50,18 +65,28 @@ class Block(nn.Module):
         if grow_first:
             self.relu = nn.ReLU(inplace=True)
             rep.append(self.relu)
-            rep.append(SeparableConv2d(in_filters, out_filters, 3, stride=1, padding=1, bias=False))
+            rep.append(
+                SeparableConv2d(
+                    in_filters, out_filters, 3, stride=1, padding=1, bias=False
+                )
+            )
             rep.append(nn.BatchNorm2d(out_filters))
             filters = out_filters
 
         for i in range(reps - 1):
             rep.append(self.relu)
-            rep.append(SeparableConv2d(filters, filters, 3, stride=1, padding=1, bias=False))
+            rep.append(
+                SeparableConv2d(filters, filters, 3, stride=1, padding=1, bias=False)
+            )
             rep.append(nn.BatchNorm2d(filters))
 
         if not grow_first:
             rep.append(self.relu)
-            rep.append(SeparableConv2d(in_filters, out_filters, 3, stride=1, padding=1, bias=False))
+            rep.append(
+                SeparableConv2d(
+                    in_filters, out_filters, 3, stride=1, padding=1, bias=False
+                )
+            )
             rep.append(nn.BatchNorm2d(out_filters))
 
         if not start_with_relu:
@@ -183,7 +208,9 @@ def xception(num_classes=1000, pretrained="imagenet"):
     model = Xception(num_classes=num_classes)
     if pretrained:
         settings = pretrained_settings["xception"][pretrained]
-        assert num_classes == settings["num_classes"], "num_classes should be {}, but is {}".format(
+        assert (
+            num_classes == settings["num_classes"]
+        ), "num_classes should be {}, but is {}".format(
             settings["num_classes"], num_classes
         )
 

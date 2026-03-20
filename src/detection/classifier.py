@@ -76,13 +76,17 @@ class DeepfakeClassifier:
         """
         try:
             if not os.path.exists(self.weights_path):
-                raise FileNotFoundError(f"Model weights not found at: {self.weights_path}")
+                raise FileNotFoundError(
+                    f"Model weights not found at: {self.weights_path}"
+                )
 
             logger.info(f"Loading PyTorch model from: {self.weights_path}")
 
             # Instantiate the model structure
             # FaceForensics++ models typically use xception with 2 classes
-            model = model_selection(modelname="xception", num_out_classes=2, dropout=0.5)
+            model = model_selection(
+                modelname="xception", num_out_classes=2, dropout=0.5
+            )
 
             # Load state dict
             # map_location ensures we can load GPU weights on CPU if needed
@@ -154,7 +158,11 @@ class DeepfakeClassifier:
         real_prob = float(probs[0])
         fake_prob = float(probs[1])
 
-        return {"real": real_prob, "fake": fake_prob, "confidence": max(real_prob, fake_prob)}
+        return {
+            "real": real_prob,
+            "fake": fake_prob,
+            "confidence": max(real_prob, fake_prob),
+        }
 
     def classify(self, face_image: np.ndarray) -> ClassificationResult:
         """
@@ -178,7 +186,9 @@ class DeepfakeClassifier:
             confidence=result["confidence"],
         )
 
-    def classify_batch(self, face_images: List[np.ndarray]) -> List[ClassificationResult]:
+    def classify_batch(
+        self, face_images: List[np.ndarray]
+    ) -> List[ClassificationResult]:
         """
         Classify a batch of faces.
         """

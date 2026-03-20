@@ -55,7 +55,9 @@ class ONNXClassifier:
         session_options = ort.SessionOptions()
         session_options.intra_op_num_threads = num_threads
         session_options.inter_op_num_threads = num_threads
-        session_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+        session_options.graph_optimization_level = (
+            ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+        )
 
         # Select execution provider
         if use_cuda and ort.get_device() == "GPU":

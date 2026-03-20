@@ -35,7 +35,9 @@ class VideoQualityAssessor:
         """Initialize the quality assessor."""
         pass
 
-    def assess_video(self, video_path: str, sample_frames: int = 10) -> VideoQualityMetrics:
+    def assess_video(
+        self, video_path: str, sample_frames: int = 10
+    ) -> VideoQualityMetrics:
         """
         Assess overall video quality.
 
@@ -113,10 +115,16 @@ class VideoQualityAssessor:
 
         # Calculate overall scores
         metrics = VideoQualityMetrics(
-            resolution_score=float(np.mean(resolution_scores)) if resolution_scores else 0.0,
-            compression_score=float(np.mean(compression_scores)) if compression_scores else 0.0,
+            resolution_score=(
+                float(np.mean(resolution_scores)) if resolution_scores else 0.0
+            ),
+            compression_score=(
+                float(np.mean(compression_scores)) if compression_scores else 0.0
+            ),
             lighting_score=float(np.mean(lighting_scores)) if lighting_scores else 0.0,
-            face_clarity_score=float(np.mean(clarity_scores)) if clarity_scores else 0.0,
+            face_clarity_score=(
+                float(np.mean(clarity_scores)) if clarity_scores else 0.0
+            ),
             overall_quality=float(
                 np.mean(
                     [
@@ -202,7 +210,9 @@ class VideoQualityAssessor:
             return float(mean_brightness / self.LOW_LIGHT_THRESHOLD) * 0.5
         elif mean_brightness > self.HIGH_LIGHT_THRESHOLD:
             # Too bright (washed out)
-            return float((255 - mean_brightness) / (255 - self.HIGH_LIGHT_THRESHOLD)) * 0.5
+            return (
+                float((255 - mean_brightness) / (255 - self.HIGH_LIGHT_THRESHOLD)) * 0.5
+            )
         else:
             # Good brightness range
             brightness_score = 1.0
@@ -268,7 +278,9 @@ class VideoQualityAssessor:
 
         return True, "Video quality is suitable for analysis"
 
-    def get_quality_label(self, score: float) -> Literal["Poor", "Fair", "Good", "Excellent"]:
+    def get_quality_label(
+        self, score: float
+    ) -> Literal["Poor", "Fair", "Good", "Excellent"]:
         """Get human-readable quality label."""
         if score >= 0.8:
             return "Excellent"

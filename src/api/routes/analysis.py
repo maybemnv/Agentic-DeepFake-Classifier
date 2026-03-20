@@ -9,7 +9,15 @@ from __future__ import annotations
 import os
 import tempfile
 import shutil
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends, BackgroundTasks
+from fastapi import (
+    APIRouter,
+    UploadFile,
+    File,
+    Form,
+    HTTPException,
+    Depends,
+    BackgroundTasks,
+)
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from ..schemas import (
@@ -214,7 +222,13 @@ async def check_video_quality(
 
     Evaluates resolution, compression, lighting, and face clarity.
     """
-    allowed_types = {"video/mp4", "video/avi", "video/quicktime", "video/x-matroska", "video/webm"}
+    allowed_types = {
+        "video/mp4",
+        "video/avi",
+        "video/quicktime",
+        "video/x-matroska",
+        "video/webm",
+    }
     if file.content_type and file.content_type not in allowed_types:
         raise HTTPException(status_code=400, detail="Invalid file type")
 
@@ -261,7 +275,9 @@ async def check_video_quality(
 )
 async def compare_videos(
     video1: UploadFile = File(..., description="First video (e.g., original)"),
-    video2: UploadFile = File(..., description="Second video (e.g., suspected deepfake)"),
+    video2: UploadFile = File(
+        ..., description="Second video (e.g., suspected deepfake)"
+    ),
     video1_description: str = Form("Original video"),
     video2_description: str = Form("Suspected deepfake"),
     classifier: DeepfakeClassifier = Depends(get_classifier),
@@ -288,14 +304,20 @@ async def compare_videos(
             temp_paths.append(temp_path)
 
             analyzer = create_analyzer_with_settings(classifier, AnalyzeSettings())
-            result = analyzer.analyze(temp_path, show_progress=False, include_raw_data=True)
+            result = analyzer.analyze(
+                temp_path, show_progress=False, include_raw_data=True
+            )
             frame_scores = _extract_frame_scores(result)
             all_frame_scores.append(frame_scores)
-            responses.append(_result_to_response(result, file.filename, frame_scores=frame_scores))
+            responses.append(
+                _result_to_response(result, file.filename, frame_scores=frame_scores)
+            )
 
         except Exception as e:
             logger.exception(f"Analysis failed for video {idx}")
-            raise HTTPException(status_code=500, detail=f"Error analyzing video {idx}: {str(e)}")
+            raise HTTPException(
+                status_code=500, detail=f"Error analyzing video {idx}: {str(e)}"
+            )
 
     score_diff = abs(responses[0].average_fake_score - responses[1].average_fake_score)
     similarity_score = 1.0 - score_diff
@@ -431,7 +453,9 @@ async def process_batch_job(
     """Process batch job in background."""
     from datetime import datetime
 
-    store.update(job_id, {"status": "PROCESSING", "created_at": datetime.utcnow().isoformat()})
+    store.update(
+        job_id, {"status": "PROCESSING", "created_at": datetime.utcnow().isoformat()}
+    )
 
     analyzer = create_analyzer_with_settings(classifier, AnalyzeSettings())
     results = []
@@ -447,9 +471,13 @@ async def process_batch_job(
                 shutil.copyfileobj(file.file, tmp)
                 temp_path = tmp.name
 
-            result = analyzer.analyze(temp_path, show_progress=False, include_raw_data=True)
+            result = analyzer.analyze(
+                temp_path, show_progress=False, include_raw_data=True
+            )
             frame_scores = _extract_frame_scores(result)
-            response = _result_to_response(result, file.filename, frame_scores=frame_scores)
+            response = _result_to_response(
+                result, file.filename, frame_scores=frame_scores
+            )
             results.append(response.model_dump(mode="json"))
             processed += 1
 

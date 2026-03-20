@@ -147,7 +147,9 @@ class VideoAnalysis(BaseModel):
     @property
     def fake_scores(self) -> list[float]:
         return [
-            f.classification.fake_probability for f in self.frames_with_faces if f.classification
+            f.classification.fake_probability
+            for f in self.frames_with_faces
+            if f.classification
         ]
 
     @computed_field

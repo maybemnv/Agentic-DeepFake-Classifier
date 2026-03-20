@@ -20,7 +20,9 @@ async def health_check():
     return HealthResponse(status="healthy", version="1.0.0")
 
 
-@router.get("/", response_model=HealthResponse, summary="Root endpoint", include_in_schema=False)
+@router.get(
+    "/", response_model=HealthResponse, summary="Root endpoint", include_in_schema=False
+)
 async def root():
     """Root endpoint redirects to health."""
     return HealthResponse(status="healthy", version="1.0.0")

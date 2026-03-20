@@ -22,13 +22,17 @@ class Settings(BaseSettings):
     # =============================================================================
     # Application Settings
     # =============================================================================
-    app_name: str = Field(default="Agentic DeepFake Classifier", description="Application name")
+    app_name: str = Field(
+        default="Agentic DeepFake Classifier", description="Application name"
+    )
     app_version: str = Field(default="1.1.0", description="Application version")
     debug: bool = Field(default=False, description="Debug mode")
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = Field(
         default="INFO", description="Logging level"
     )
-    log_format: Literal["json", "text"] = Field(default="json", description="Log format")
+    log_format: Literal["json", "text"] = Field(
+        default="json", description="Log format"
+    )
 
     # =============================================================================
     # API Settings
@@ -54,13 +58,17 @@ class Settings(BaseSettings):
     # =============================================================================
     # Rate Limiting
     # =============================================================================
-    rate_limit_per_minute: int = Field(default=10, ge=1, description="Rate limit per minute")
+    rate_limit_per_minute: int = Field(
+        default=10, ge=1, description="Rate limit per minute"
+    )
     rate_limit_burst: int = Field(default=20, ge=1, description="Rate limit burst")
 
     # =============================================================================
     # Model Settings
     # =============================================================================
-    model_path: str = Field(default="model/ffpp_c23.pth", description="Path to model weights")
+    model_path: str = Field(
+        default="model/ffpp_c23.pth", description="Path to model weights"
+    )
     use_cuda: bool = Field(default=True, description="Use CUDA for inference")
     batch_size: int = Field(default=32, ge=1, description="Batch size for inference")
     input_size: int = Field(default=299, ge=32, description="Model input size")
@@ -81,9 +89,13 @@ class Settings(BaseSettings):
     # =============================================================================
     # Video Processing
     # =============================================================================
-    sample_rate: float = Field(default=1.0, ge=0.1, description="Frame sampling rate (fps)")
+    sample_rate: float = Field(
+        default=1.0, ge=0.1, description="Frame sampling rate (fps)"
+    )
     max_frames: int = Field(default=0, ge=0, description="Max frames (0 = unlimited)")
-    video_cache_dir: str = Field(default=".cache/videos", description="Video cache directory")
+    video_cache_dir: str = Field(
+        default=".cache/videos", description="Video cache directory"
+    )
 
     # =============================================================================
     # Redis
@@ -104,7 +116,9 @@ class Settings(BaseSettings):
     # Storage
     # =============================================================================
     upload_dir: str = Field(default="./uploads", description="Upload directory")
-    max_upload_size_mb: int = Field(default=500, ge=1, description="Max upload size in MB")
+    max_upload_size_mb: int = Field(
+        default=500, ge=1, description="Max upload size in MB"
+    )
 
     # =============================================================================
     # CORS
@@ -113,13 +127,18 @@ class Settings(BaseSettings):
         default="http://localhost:8501,http://localhost:3000",
         description="Comma-separated allowed origins",
     )
-    allow_credentials: bool = Field(default=True, description="Allow credentials in CORS")
+    allow_credentials: bool = Field(
+        default=True, description="Allow credentials in CORS"
+    )
 
     @field_validator("secret_key")
     @classmethod
     def validate_secret_key(cls, v: str) -> str:
         """Validate that secret key is changed in production."""
-        if v == "change-me-in-production" and os.getenv("APP_ENV", "development") == "production":
+        if (
+            v == "change-me-in-production"
+            and os.getenv("APP_ENV", "development") == "production"
+        ):
             raise ValueError(
                 "SECRET_KEY must be changed in production. Generate one with: openssl rand -hex 32"
             )
