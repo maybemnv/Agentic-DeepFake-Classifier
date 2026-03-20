@@ -5,7 +5,7 @@ Endpoints for user registration, login, and API key management.
 
 import uuid
 from datetime import datetime
-from fastapi import APIRouter, HTTPException, Depends, status, Security
+from fastapi import APIRouter, HTTPException, Depends, status, Security, Form
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import logging
 
@@ -23,7 +23,7 @@ from ..security import (
     create_api_key_for_user,
     get_rate_limits_for_tier,
 )
-from ..schemas import APIKeyResponse, RateLimitInfo
+from ..schemas import APIKeyResponse, RateLimitInfo, UserResponse
 
 logger = logging.getLogger(__name__)
 
@@ -199,10 +199,10 @@ async def create_api_key(current_user: User = Depends(get_current_user)):
     )
 
 
-@router.get("/me", response_model=User, summary="Get current user info")
+@router.get("/me", response_model=UserResponse, summary="Get current user info")
 async def get_me(current_user: User = Depends(get_current_user)):
     """Get information about the currently authenticated user."""
-    return User(
+    return UserResponse(
         id=current_user.id,
         username=current_user.username,
         email=current_user.email,

@@ -5,7 +5,7 @@ Shared dependencies for API routes.
 
 from typing import Any
 from functools import lru_cache
-from fastapi import Request, HTTPException, status
+from fastapi import Request, HTTPException, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from ..detection import DeepfakeClassifier

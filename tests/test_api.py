@@ -11,7 +11,8 @@ from src.api.app import app
 @pytest.fixture
 def client():
     """Create test client."""
-    return TestClient(app)
+    with TestClient(app) as c:
+        yield c
 
 
 class TestHealthEndpoint:
@@ -51,7 +52,7 @@ class TestAuthEndpoints:
     def test_register_user(self, client):
         response = client.post(
             "/auth/register",
-            data={
+            json={
                 "username": "testuser",
                 "password": "testpass123",
                 "email": "test@example.com",
@@ -66,7 +67,7 @@ class TestAuthEndpoints:
         # First register
         client.post(
             "/auth/register",
-            data={
+            json={
                 "username": "loginuser",
                 "password": "testpass123",
             },
@@ -88,7 +89,7 @@ class TestAuthEndpoints:
         # First register
         client.post(
             "/auth/register",
-            data={
+            json={
                 "username": "wrongpassuser",
                 "password": "testpass123",
             },
@@ -108,7 +109,7 @@ class TestAuthEndpoints:
         # Register first user
         response1 = client.post(
             "/auth/register",
-            data={
+            json={
                 "username": "duplicateuser",
                 "password": "testpass123",
             },
@@ -118,7 +119,7 @@ class TestAuthEndpoints:
         # Try to register same username
         response2 = client.post(
             "/auth/register",
-            data={
+            json={
                 "username": "duplicateuser",
                 "password": "testpass456",
             },
@@ -133,7 +134,7 @@ class TestRateLimits:
         # Register and login
         reg_response = client.post(
             "/auth/register",
-            data={
+            json={
                 "username": "ratelimituser",
                 "password": "testpass123",
             },
@@ -158,7 +159,7 @@ class TestAPIKey:
         # Register and login
         reg_response = client.post(
             "/auth/register",
-            data={
+            json={
                 "username": "apiuser",
                 "password": "testpass123",
             },
@@ -179,7 +180,7 @@ class TestAPIKey:
         # Register and login
         reg_response = client.post(
             "/auth/register",
-            data={
+            json={
                 "username": "meuser",
                 "password": "testpass123",
                 "email": "me@example.com",

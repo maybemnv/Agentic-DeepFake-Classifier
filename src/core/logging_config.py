@@ -22,11 +22,9 @@ def setup_logging() -> None:
     # Shared processors for all loggers
     shared_processors: list[Any] = [
         structlog.contextvars.merge_contextvars,
-        structlog.processors.add_log_level,
-        structlog.processors.add_logger_name,
-        structlog.processors.TimeStamper(fmt="iso"),
         structlog.stdlib.add_logger_name,
         structlog.stdlib.add_log_level,
+        structlog.processors.TimeStamper(fmt="iso"),
         structlog.stdlib.PositionalArgumentsFormatter(),
         structlog.processors.StackInfoRenderer(),
         structlog.processors.UnicodeDecoder(),
