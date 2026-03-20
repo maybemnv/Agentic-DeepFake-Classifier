@@ -4,14 +4,13 @@ Endpoints for video analysis with rate limiting and quality checks.
 Uses shared classifier instance - model loaded once, shared by all requests.
 """
 
+from __future__ import annotations
+
 import os
 import tempfile
 import shutil
-import uuid
-from typing import Optional
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends, BackgroundTasks
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-import logging
 
 from ..schemas import (
     AnalysisResponse,
@@ -23,19 +22,17 @@ from ..schemas import (
     BatchJobStatusResponse,
     JobStatusEnum,
 )
-from ..dependencies import get_classifier, get_current_user_from_auth
+from ..dependencies import get_classifier, get_current_user_from_auth, get_job_store
 from ..security import get_rate_limits_for_tier, User
-from src.detection import DeepfakeClassifier, VideoQualityAssessor
-from src.pipeline import DeepfakeAnalyzer
-from src.core.exceptions import VideoError, ClassifierError
-from src.core import VideoQualityMetrics, get_logger
+from ...detection import DeepfakeClassifier, VideoQualityAssessor
+from ...pipeline import DeepfakeAnalyzer
+from ...core.exceptions import VideoError, ClassifierError
+from ...core import get_logger
+from ...workers.job_store import JobStore
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/analyze", tags=["Analysis"])
 security = HTTPBearer(auto_error=False)
-
-# In-memory batch jobs store (replace with Redis/database in production)
-batch_jobs: dict[str, dict] = {}
 
 
 def create_analyzer_with_settings(
@@ -58,6 +55,60 @@ async def get_user_or_none(
     return await get_current_user_from_auth(credentials)
 
 
+def _extract_frame_scores(result) -> list[float]:
+    """Pull per-frame fake scores from an AnalysisResult if available."""
+    if result.video_analysis is None:
+        return []
+    return [
+        f.classification.fake_probability
+        for f in result.video_analysis.frame_analyses
+        if f.face_detected and f.classification is not None
+    ]
+
+
+def _build_quality_metrics(assessor: VideoQualityAssessor, video_path: str) -> dict:
+    """Run quality assessment and return metrics dict."""
+    quality = assessor.assess_video(video_path)
+    is_suitable, reason = assessor.is_suitable_for_analysis(quality)
+    return {
+        "overall_quality": quality.overall_quality,
+        "resolution_score": quality.resolution_score,
+        "compression_score": quality.compression_score,
+        "lighting_score": quality.lighting_score,
+        "face_clarity_score": quality.face_clarity_score,
+        "quality_label": assessor.get_quality_label(quality.overall_quality),
+        "issues": quality.issues,
+        "recommendations": quality.recommendations,
+        "is_suitable": is_suitable,
+        "suitability_reason": reason,
+    }
+
+
+def _result_to_response(
+    result,
+    filename: str,
+    quality_metrics: dict | None = None,
+    frame_scores: list[float] | None = None,
+) -> AnalysisResponse:
+    return AnalysisResponse(
+        success=True,
+        video_path=filename,
+        duration_seconds=result.duration_seconds,
+        verdict=result.verdict.value,
+        confidence=result.confidence,
+        average_fake_score=result.average_fake_score,
+        max_fake_score=result.max_fake_score,
+        min_fake_score=result.min_fake_score,
+        frames_analyzed=result.frames_analyzed,
+        frames_with_faces=result.frames_with_faces,
+        verdict_text=result.verdict_text,
+        explanation=result.explanation,
+        recommendation=result.recommendation,
+        quality_metrics=quality_metrics,
+        frame_scores=frame_scores or [],
+    )
+
+
 @router.post(
     "",
     response_model=AnalysisResponse,
@@ -68,7 +119,7 @@ async def get_user_or_none(
 async def analyze_video(
     file: UploadFile = File(..., description="Video file to analyze"),
     sample_rate: float = Form(1.0, ge=0.5, le=5.0),
-    max_frames: Optional[int] = Form(None, ge=1),
+    max_frames: int | None = Form(None, ge=1),
     fake_threshold: float = Form(0.7, ge=0.5, le=0.95),
     suspicious_threshold: float = Form(0.4, ge=0.2, le=0.6),
     include_quality: bool = Form(True, description="Include quality assessment"),
@@ -85,13 +136,9 @@ async def analyze_video(
     - **suspicious_threshold**: Score threshold for SUSPICIOUS verdict (default: 0.4)
     - **include_quality**: Include video quality assessment (default: true)
     """
-    # Check file type
     allowed_types = {
-        "video/mp4",
-        "video/avi",
-        "video/quicktime",
-        "video/x-matroska",
-        "video/webm",
+        "video/mp4", "video/avi", "video/quicktime",
+        "video/x-matroska", "video/webm",
     }
     if file.content_type and file.content_type not in allowed_types:
         raise HTTPException(
@@ -99,15 +146,13 @@ async def analyze_video(
             detail=f"Invalid file type: {file.content_type}. Allowed: MP4, AVI, MOV, MKV, WebM",
         )
 
-    # Check upload size limit based on user tier
     user_tier = current_user.tier if current_user else "free"
     rate_limits = get_rate_limits_for_tier(user_tier)
     max_size_bytes = rate_limits["max_upload_mb"] * 1024 * 1024
 
-    # Get file size
-    file.file.seek(0, 2)  # Seek to end
+    file.file.seek(0, 2)
     file_size = file.file.tell()
-    file.file.seek(0)  # Reset
+    file.file.seek(0)
 
     if file_size > max_size_bytes:
         raise HTTPException(
@@ -128,50 +173,16 @@ async def analyze_video(
             fake_threshold=fake_threshold,
             suspicious_threshold=suspicious_threshold,
         )
-
         analyzer = create_analyzer_with_settings(classifier, settings)
 
-        # Quality check first
         quality_metrics = None
         if include_quality:
-            assessor = VideoQualityAssessor()
-            quality = assessor.assess_video(temp_path)
-            is_suitable, reason = assessor.is_suitable_for_analysis(quality)
+            quality_metrics = _build_quality_metrics(VideoQualityAssessor(), temp_path)
 
-            if not is_suitable:
-                logger.warning(f"Video quality unsuitable: {reason}")
+        result = analyzer.analyze(temp_path, show_progress=False, include_raw_data=True)
+        frame_scores = _extract_frame_scores(result)
 
-            quality_metrics = {
-                "overall_quality": quality.overall_quality,
-                "resolution_score": quality.resolution_score,
-                "compression_score": quality.compression_score,
-                "lighting_score": quality.lighting_score,
-                "face_clarity_score": quality.face_clarity_score,
-                "quality_label": assessor.get_quality_label(quality.overall_quality),
-                "issues": quality.issues,
-                "recommendations": quality.recommendations,
-                "is_suitable": is_suitable,
-                "suitability_reason": reason,
-            }
-
-        result = analyzer.analyze(temp_path, show_progress=False)
-
-        return AnalysisResponse(
-            success=True,
-            video_path=file.filename,
-            duration_seconds=result.duration_seconds,
-            verdict=result.verdict.value,
-            confidence=result.confidence,
-            average_fake_score=result.average_fake_score,
-            max_fake_score=result.max_fake_score,
-            min_fake_score=result.min_fake_score,
-            frames_analyzed=result.frames_analyzed,
-            frames_with_faces=result.frames_with_faces,
-            verdict_text=result.verdict_text,
-            explanation=result.explanation,
-            recommendation=result.recommendation,
-            quality_metrics=quality_metrics,
-        )
+        return _result_to_response(result, file.filename, quality_metrics, frame_scores)
 
     except VideoError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -255,13 +266,16 @@ async def compare_videos(
     """
     Compare two videos side-by-side for deepfake analysis.
 
-    Useful for comparing an original video against a suspected manipulation.
+    Returns per-frame fake score arrays (`frame_scores_video1`, `frame_scores_video2`)
+    for client-side differential visualisation.
     """
-    # Process both videos
-    results = []
-    temp_paths = []
+    responses: list[AnalysisResponse] = []
+    all_frame_scores: list[list[float]] = []
+    temp_paths: list[str] = []
 
-    for idx, file in enumerate([video1, video2], 1):
+    for idx, (file, desc) in enumerate(
+        [(video1, video1_description), (video2, video2_description)], 1
+    ):
         temp_path = None
         try:
             suffix = os.path.splitext(file.filename)[1] or ".mp4"
@@ -270,71 +284,54 @@ async def compare_videos(
                 temp_path = tmp.name
             temp_paths.append(temp_path)
 
-            settings = AnalyzeSettings()
-            analyzer = create_analyzer_with_settings(classifier, settings)
-            result = analyzer.analyze(temp_path, show_progress=False)
-
-            results.append(
-                AnalysisResponse(
-                    success=True,
-                    video_path=file.filename,
-                    duration_seconds=result.duration_seconds,
-                    verdict=result.verdict.value,
-                    confidence=result.confidence,
-                    average_fake_score=result.average_fake_score,
-                    max_fake_score=result.max_fake_score,
-                    min_fake_score=result.min_fake_score,
-                    frames_analyzed=result.frames_analyzed,
-                    frames_with_faces=result.frames_with_faces,
-                    verdict_text=result.verdict_text,
-                    explanation=result.explanation,
-                    recommendation=result.recommendation,
-                )
-            )
+            analyzer = create_analyzer_with_settings(classifier, AnalyzeSettings())
+            result = analyzer.analyze(temp_path, show_progress=False, include_raw_data=True)
+            frame_scores = _extract_frame_scores(result)
+            all_frame_scores.append(frame_scores)
+            responses.append(_result_to_response(result, file.filename, frame_scores=frame_scores))
 
         except Exception as e:
             logger.exception(f"Analysis failed for video {idx}")
             raise HTTPException(status_code=500, detail=f"Error analyzing video {idx}: {str(e)}")
 
-    # Calculate similarity score (simple difference-based metric)
-    score_diff = abs(results[0].average_fake_score - results[1].average_fake_score)
+    score_diff = abs(responses[0].average_fake_score - responses[1].average_fake_score)
     similarity_score = 1.0 - score_diff
 
-    # Generate differential analysis
-    if results[0].verdict == results[1].verdict:
-        conclusion = f"Both videos show consistent results: {results[0].verdict}"
+    if responses[0].verdict == responses[1].verdict:
+        conclusion = f"Both videos show consistent results: {responses[0].verdict}"
     else:
         conclusion = (
             f"Videos show different results. "
-            f"{video1_description}: {results[0].verdict}, "
-            f"{video2_description}: {results[1].verdict}"
+            f"{video1_description}: {responses[0].verdict}, "
+            f"{video2_description}: {responses[1].verdict}"
         )
 
     differential = (
         f"Comparison between '{video1_description}' and '{video2_description}':\n\n"
-        f"- Video 1 avg fake score: {results[0].average_fake_score:.1%}\n"
-        f"- Video 2 avg fake score: {results[1].average_fake_score:.1%}\n"
+        f"- Video 1 avg fake score: {responses[0].average_fake_score:.1%}\n"
+        f"- Video 2 avg fake score: {responses[1].average_fake_score:.1%}\n"
         f"- Difference: {score_diff:.1%}\n"
         f"- Similarity: {similarity_score:.1%}\n\n"
         f"Verdict comparison:\n"
-        f"- {video1_description}: {results[0].verdict} ({results[0].confidence:.0%} confidence)\n"
-        f"- {video2_description}: {results[1].verdict} ({results[1].confidence:.0%} confidence)"
+        f"- {video1_description}: {responses[0].verdict} ({responses[0].confidence:.0%} confidence)\n"
+        f"- {video2_description}: {responses[1].verdict} ({responses[1].confidence:.0%} confidence)"
     )
 
-    # Cleanup
-    for temp_path in temp_paths:
-        if os.path.exists(temp_path):
-            os.unlink(temp_path)
+    for p in temp_paths:
+        if os.path.exists(p):
+            os.unlink(p)
 
     return ComparativeAnalysisResponse(
         success=True,
         video1_path=video1.filename,
         video2_path=video2.filename,
-        video1_result=results[0],
-        video2_result=results[1],
+        video1_result=responses[0],
+        video2_result=responses[1],
         similarity_score=similarity_score,
         differential_analysis=differential,
         conclusion=conclusion,
+        frame_scores_video1=all_frame_scores[0],
+        frame_scores_video2=all_frame_scores[1],
     )
 
 
@@ -350,40 +347,25 @@ async def batch_analyze(
     background_tasks: BackgroundTasks = None,
     classifier: DeepfakeClassifier = Depends(get_classifier),
     current_user: User | None = Depends(get_user_or_none),
+    store: JobStore = Depends(get_job_store),
 ):
     """
     Analyze multiple videos in batch.
 
-    Returns a job ID to track progress. Results available via /batch/{job_id}/status.
+    Returns a job ID to track progress. Results available via /batch/{job_id}.
     """
-    if len(files) == 0:
+    if not files:
         raise HTTPException(status_code=400, detail="No files provided")
 
-    # Check tier limits
     user_tier = current_user.tier if current_user else "free"
-    rate_limits = get_rate_limits_for_tier(user_tier)
-
     if len(files) > 10 and user_tier == "free":
         raise HTTPException(
             status_code=403,
             detail=f"Free tier limited to 10 videos per batch. Current: {len(files)}",
         )
 
-    # Create job
-    job_id = str(uuid.uuid4())
-    batch_jobs[job_id] = {
-        "job_id": job_id,
-        "status": JobStatusEnum.PENDING,
-        "total_videos": len(files),
-        "processed_videos": 0,
-        "failed_videos": 0,
-        "results": [],
-        "errors": [],
-        "created_at": None,  # Will be set
-        "completed_at": None,
-    }
+    job_id = store.create(total_videos=len(files))
 
-    # Start background processing
     if background_tasks:
         background_tasks.add_task(
             process_batch_job,
@@ -391,6 +373,7 @@ async def batch_analyze(
             files,
             include_quality,
             classifier,
+            store,
         )
 
     return BatchJobResponse(
@@ -408,19 +391,24 @@ async def batch_analyze(
     summary="Get batch job status",
     description="Retrieve status and results of a batch processing job.",
 )
-async def get_batch_status(job_id: str):
+async def get_batch_status(
+    job_id: str,
+    store: JobStore = Depends(get_job_store),
+):
     """Get status and results of a batch job."""
-    if job_id not in batch_jobs:
+    job = store.get(job_id)
+    if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
 
-    job = batch_jobs[job_id]
-    progress = (job["processed_videos"] / job["total_videos"] * 100) if job["total_videos"] > 0 else 0
+    total = job["total_videos"]
+    processed = job["processed_videos"]
+    progress = (processed / total * 100) if total > 0 else 0
 
     return BatchJobStatusResponse(
         job_id=job_id,
         status=job["status"],
-        total_videos=job["total_videos"],
-        processed_videos=job["processed_videos"],
+        total_videos=total,
+        processed_videos=processed,
         failed_videos=job["failed_videos"],
         progress_percent=progress,
         results=job["results"],
@@ -435,56 +423,50 @@ async def process_batch_job(
     files: list[UploadFile],
     include_quality: bool,
     classifier: DeepfakeClassifier,
-):
+    store: JobStore,
+) -> None:
     """Process batch job in background."""
     from datetime import datetime
 
-    job = batch_jobs[job_id]
-    job["created_at"] = datetime.utcnow()
-    job["status"] = JobStatusEnum.PROCESSING
+    store.update(job_id, {"status": "PROCESSING", "created_at": datetime.utcnow().isoformat()})
 
-    settings = AnalyzeSettings()
-    analyzer = create_analyzer_with_settings(classifier, settings)
+    analyzer = create_analyzer_with_settings(classifier, AnalyzeSettings())
+    results = []
+    errors = []
+    processed = 0
+    failed = 0
 
-    for idx, file in enumerate(files):
+    for file in files:
+        temp_path = None
         try:
-            temp_path = None
             suffix = os.path.splitext(file.filename)[1] or ".mp4"
             with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
                 shutil.copyfileobj(file.file, tmp)
                 temp_path = tmp.name
 
-            result = analyzer.analyze(temp_path, show_progress=False)
-
-            job["results"].append(
-                AnalysisResponse(
-                    success=True,
-                    video_path=file.filename,
-                    duration_seconds=result.duration_seconds,
-                    verdict=result.verdict.value,
-                    confidence=result.confidence,
-                    average_fake_score=result.average_fake_score,
-                    max_fake_score=result.max_fake_score,
-                    min_fake_score=result.min_fake_score,
-                    frames_analyzed=result.frames_analyzed,
-                    frames_with_faces=result.frames_with_faces,
-                    verdict_text=result.verdict_text,
-                    explanation=result.explanation,
-                    recommendation=result.recommendation,
-                )
-            )
-            job["processed_videos"] += 1
+            result = analyzer.analyze(temp_path, show_progress=False, include_raw_data=True)
+            frame_scores = _extract_frame_scores(result)
+            response = _result_to_response(result, file.filename, frame_scores=frame_scores)
+            results.append(response.model_dump(mode="json"))
+            processed += 1
 
             if os.path.exists(temp_path):
                 os.unlink(temp_path)
 
         except Exception as e:
             logger.exception(f"Batch error: {file.filename}")
-            job["errors"].append(f"{file.filename}: {str(e)}")
-            job["failed_videos"] += 1
+            errors.append(f"{file.filename}: {str(e)}")
+            failed += 1
 
-    # Complete job
-    job["status"] = JobStatusEnum.COMPLETED
-    job["completed_at"] = datetime.utcnow()
+        store.update(job_id, {
+            "processed_videos": processed,
+            "failed_videos": failed,
+            "results": results,
+            "errors": errors,
+        })
 
-    logger.info(f"Batch job {job_id} completed: {job['processed_videos']}/{job['total_videos']}")
+    store.update(job_id, {
+        "status": "COMPLETED",
+        "completed_at": datetime.utcnow().isoformat(),
+    })
+    logger.info(f"Batch job {job_id} completed: {processed}/{len(files)}")

@@ -3,9 +3,10 @@ Core Models Module
 All Pydantic models and type definitions for the project.
 """
 
+from __future__ import annotations
+
 from pydantic import BaseModel, Field, field_validator, computed_field, ConfigDict
 from enum import Enum
-from typing import Optional
 from datetime import datetime
 import numpy as np
 
@@ -109,8 +110,8 @@ class FrameAnalysis(BaseModel):
 
     frame_index: int
     face_detected: bool
-    face_bbox: Optional[tuple[int, int, int, int]] = None
-    classification: Optional[ClassificationResult] = None
+    face_bbox: tuple[int, int, int, int] | None = None
+    classification: ClassificationResult | None = None
 
 
 class VideoAnalysis(BaseModel):
@@ -222,7 +223,7 @@ class AnalysisResult(BaseModel):
     explanation: str
     recommendation: str
     short_summary: str
-    video_analysis: Optional[VideoAnalysis] = None
+    video_analysis: VideoAnalysis | None = None
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
     def __str__(self) -> str:
@@ -305,7 +306,7 @@ class BatchJobInfo(BaseModel):
     processed_videos: int
     failed_videos: int
     created_at: datetime
-    completed_at: Optional[datetime] = None
+    completed_at: datetime | None = None
     results: list[AnalysisResult] = Field(default_factory=list)
     errors: list[str] = Field(default_factory=list)
 

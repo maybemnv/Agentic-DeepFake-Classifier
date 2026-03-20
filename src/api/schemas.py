@@ -3,8 +3,9 @@ API Schemas
 Request/Response models for the API.
 """
 
-from pydantic import BaseModel, Field
-from typing import Optional
+from __future__ import annotations
+
+from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 from enum import Enum
 
@@ -45,14 +46,14 @@ class AnalyzeRequest(BaseModel):
 
     video_url: str = Field(..., description="URL of the video to analyze")
     sample_rate: float = Field(1.0, ge=0.5, le=5.0, description="Frames per second")
-    max_frames: Optional[int] = Field(None, ge=1, le=100, description="Max frames")
+    max_frames: int | None = Field(None, ge=1, le=100, description="Max frames")
 
 
 class AnalyzeSettings(BaseModel):
     """Settings for video analysis."""
 
     sample_rate: float = Field(1.0, ge=0.5, le=5.0)
-    max_frames: Optional[int] = Field(None, ge=1, le=100)
+    max_frames: int | None = Field(None, ge=1, le=100)
     fake_threshold: float = Field(0.7, ge=0.5, le=0.95)
     suspicious_threshold: float = Field(0.4, ge=0.2, le=0.6)
 
@@ -68,10 +69,10 @@ class BatchAnalyzeRequest(BaseModel):
 class ComparativeAnalysisRequest(BaseModel):
     """Request for comparative analysis between two videos."""
 
-    video1_description: Optional[str] = Field(
+    video1_description: str | None = Field(
         default="Original video", description="Description of first video"
     )
-    video2_description: Optional[str] = Field(
+    video2_description: str | None = Field(
         default="Suspected deepfake", description="Description of second video"
     )
     include_differential: bool = Field(
@@ -107,11 +108,12 @@ class AnalysisResponse(BaseModel):
     verdict_text: str
     explanation: str
     recommendation: str
-    quality_metrics: Optional[dict] = None
+    quality_metrics: dict | None = None
+    frame_scores: list[float] | None = None
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "success": True,
                 "video_path": "uploaded_video.mp4",
@@ -128,6 +130,7 @@ class AnalysisResponse(BaseModel):
                 "recommendation": "Do not trust this video.",
             }
         }
+    )
 
 
 class QuickCheckResponse(BaseModel):
@@ -167,6 +170,8 @@ class ComparativeAnalysisResponse(BaseModel):
     similarity_score: float = Field(..., ge=0.0, le=1.0)
     differential_analysis: str
     conclusion: str
+    frame_scores_video1: list[float] | None = None
+    frame_scores_video2: list[float] | None = None
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 
@@ -192,7 +197,7 @@ class BatchJobStatusResponse(BaseModel):
     results: list[AnalysisResponse] = Field(default_factory=list)
     errors: list[str] = Field(default_factory=list)
     created_at: datetime
-    completed_at: Optional[datetime] = None
+    completed_at: datetime | None = None
 
 
 class ErrorResponse(BaseModel):
@@ -200,7 +205,7 @@ class ErrorResponse(BaseModel):
 
     success: bool = False
     error: str
-    detail: Optional[str] = None
+    detail: str | None = None
 
 
 class APIKeyResponse(BaseModel):
@@ -229,6 +234,6 @@ class UserResponse(BaseModel):
 
     id: str
     username: str
-    email: Optional[str] = None
+    email: str | None = None
     tier: TierEnum
     created_at: datetime

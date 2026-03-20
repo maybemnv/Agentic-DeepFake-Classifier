@@ -4,7 +4,8 @@ Complete agentic analysis combining detection and decision-making.
 Receives classifier as dependency - does not create it.
 """
 
-from typing import Optional
+from __future__ import annotations
+
 from pathlib import Path
 import logging
 
@@ -32,7 +33,7 @@ class DeepfakeAnalyzer:
         self,
         classifier: DeepfakeClassifier,
         sample_rate: float = 1.0,
-        max_frames: Optional[int] = None,
+        max_frames: int | None = None,
         fake_threshold: float = 0.7,
         suspicious_threshold: float = 0.4,
     ):
@@ -129,7 +130,7 @@ def analyze_video(
     video_path: str,
     classifier: "DeepfakeClassifier",
     sample_rate: float = 1.0,
-    max_frames: Optional[int] = None,
+    max_frames: int | None = None,
     show_progress: bool = True,
 ) -> AnalysisResult:
     """

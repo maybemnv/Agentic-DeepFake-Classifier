@@ -5,8 +5,6 @@ Model optimization using ONNX runtime for faster inference.
 
 import numpy as np
 from pathlib import Path
-from typing import Optional
-import logging
 
 try:
     import onnxruntime as ort

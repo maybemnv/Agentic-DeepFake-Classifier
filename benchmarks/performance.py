@@ -5,7 +5,7 @@ Benchmark tools for measuring model performance.
 
 import time
 import numpy as np
-from typing import Callable
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 import json
