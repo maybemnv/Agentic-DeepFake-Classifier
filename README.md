@@ -2,7 +2,7 @@
 
 An autonomous deepfake detection system utilizing XceptionNet and agentic reasoning to analyze video authenticity.
 
-[![CI/CD Pipeline](https://github.com/yourusername/Agentic-DeepFake-Classifier/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/yourusername/Agentic-DeepFake-Classifier/actions/workflows/ci-cd.yml)
+[![CI/CD Pipeline](https://github.com/maybemnv/Agentic-DeepFake-Classifier/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/maybemnv/Agentic-DeepFake-Classifier/actions/workflows/ci-cd.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)
